@@ -10,18 +10,28 @@ HOW TO RUN
 HOW TO PLAY
   Click a task (the left part of its row) to start it. When the bar fills
   up you get paid. Use the money to unlock new tasks and level them up.
+  Leveling up makes a task pay more, and at levels 10, 25, 50 and 100 it
+  also gets twice as fast (never faster than 1 second).
+  Hire a character for a task and they will run it for you, even while the
+  game is closed (up to 8 hours of offline earnings).
+  Stats and Achievements are at the bottom of the page.
 
 FILES
   index.html   The page. Loads the font, style.css and the scripts in this
-               order: tasks.js, save.js, game.js.
+               order: tasks.js, sprites.js, save.js, game.js.
   style.css    Colors, layout and the pixel look.
   tasks.js     The list of tasks and all their numbers (time, payout,
                unlock cost, level cost base, hire cost). Change numbers here
-               to tune the game.
+               to tune the game. Also the speed milestone levels.
+  sprites.js   The pixel art. Each character is a 16x16 grid of letters,
+               each letter is a color. Also the function that draws a
+               sprite onto a canvas.
   save.js      gameState (everything that changes while playing), making a
-               new game, saving and loading with localStorage, and Reset.
-  game.js      The game itself: formulas, clicking tasks, buying things, the
-               game loop that pays the player, and drawing the screen.
+               new game, saving and loading with localStorage, offline
+               progress, and Reset.
+  game.js      The game itself: formulas, clicking tasks, buying and hiring,
+               the game loop that pays the player, achievements, the stats
+               and achievements popups, and drawing the screen.
   readme.txt   This file.
   dev-notes.md A log of problems and design changes while building the game.
   test-checklist.md  Step-by-step manual tests for each layer.

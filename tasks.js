@@ -47,3 +47,6 @@ var taskList = [
     hireCost: 750000
   }
 ];
+
+// When a task reaches one of these levels, its time is cut in half
+var speedMilestones = [10, 25, 50, 100];

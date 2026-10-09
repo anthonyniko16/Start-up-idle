@@ -32,3 +32,46 @@ Start this section with a fresh game: click Reset and press OK.
 14. Click Reset and press OK. Money is $0, only Fix a Bug is unlocked at level 1.
 15. Reload the page. It is still the fresh game (the old save is gone).
 16. Make the browser window narrow (or use phone view in dev tools). The buttons move under each task and nothing is cut off sideways.
+
+## Layer 3: hiring, sprites, speed, offline, achievements
+
+Start this section with a fresh game: click Reset and press OK.
+
+### Sprites
+1. Every row shows a little pixel person at a desk with a laptop (the Founder, blue hoodie). The edges are sharp, not blurry.
+2. Click Fix a Bug. While the bar fills, the Founder's hands move up and down (typing) about 3 times a second. When it finishes, the hands stop in the "down" position.
+3. Locked rows show a faded Founder.
+
+### Achievements and stats
+4. Finish one Fix a Bug run. A message "Achievement: First Paycheck" appears at the bottom.
+5. Click Achievements. First Paycheck has [X] and is green. The other five have [ ] and are grey. Click Close.
+6. Click Stats. It shows Total earned $10, Tasks completed 1, Characters hired 0 / 5, Highest level 1. Click Close.
+
+### Hiring
+7. The Fix a Bug row has a grey "Hire Intern $150" button. Locked rows have no Hire button.
+8. Click "Add $10,000 (testing)". Hire Intern turns yellow. Click it.
+9. Money drops by $150. The Founder changes to the Intern (yellow hair, green shirt). The row border turns green, the status says "Auto (Intern): $10 every 10s", and the Hire button is gone. Messages say "You hired the Intern!" and "Achievement: First Hire".
+10. The bar starts by itself and the Intern types. Every 10 seconds you get $10 and the bar starts again without clicking.
+11. Click the Fix a Bug row while it runs. Nothing happens.
+12. Switch to another tab for about 1 minute, then come back. Money went up by about $60 (6 runs) for the Intern.
+
+### Speed milestones
+13. Level Fix a Bug up to level 9. It still says "every 10s".
+14. Level it to 10. It now says "$100 every 5s" (twice as fast). Message: "Achievement: Level 10". The Level Up button says $60 (the cost to go from level 10 to 11).
+15. Keep leveling (use the testing button for money). Level 25: "every 2.5s". Level 50: "every 1.25s". Level 100: "every 1s". Level 101 and higher stay at 1s.
+
+### Other characters
+16. Unlock all four other tasks. Message: "Achievement: Full Office".
+17. Hire each one when you can afford it (use the testing button many times; DevOps costs $750,000). Check each picture: Junior Dev (orange shirt, brown hair), Designer (pink hair, purple shirt), QA Tester (red shirt), DevOps Engineer (dark clothes, white headset with a microphone).
+18. When all five are hired: "Achievement: Fully Automated". Stats says Characters hired 5 / 5.
+
+### Saving and offline progress
+19. Note your money and which characters are hired. Close the tab. Wait 2 minutes. Open index.html again.
+20. A "Welcome back!" popup says you were away about 2m and how much your company earned. It should be about 2 minutes of what your hired characters make (for example, the Intern alone at level 1 makes $120 in 2 minutes). Click OK.
+21. Money went up by the amount in the popup. Hired tasks are running again.
+22. Reset, then start Fix a Bug by hand (no one hired). Close the tab right away, wait 30 seconds, open it again. The popup says it earned $10 (one run only), and Fix a Bug is waiting for a click.
+23. Reload the page quickly (F5) with nothing finished. No welcome popup appears.
+24. Optional (8 hour limit): open the browser's developer console (F12) and paste:
+    `gameState.lastSaved = Date.now() - 20 * 3600 * 1000; window.onbeforeunload = null; localStorage.setItem("startUpSave", JSON.stringify(gameState)); location.reload();`
+    The popup says you were away 8 hours or more and you only get 8 hours of earnings.
+25. Make the window narrow. The welcome, Stats and Achievements popups still fit on the screen.

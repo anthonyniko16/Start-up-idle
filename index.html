@@ -18,11 +18,32 @@
   <div id="task-list"></div>
 
   <div id="bottom-bar">
+    <button onclick="showStats()">Stats</button>
+    <button onclick="showAchievements()">Achievements</button>
     <button onclick="clickSave()">Save</button>
     <button onclick="resetGame()">Reset</button>
   </div>
 
-  <div id="message"></div>
+  <!-- Short messages like "Game saved" are added here by showMessage() -->
+  <div id="message-area"></div>
+
+  <!-- Popup shown when the player comes back and their team earned money -->
+  <div id="welcome-popup" class="popup">
+    <div class="popup-box">
+      <h2>Welcome back!</h2>
+      <p id="welcome-text"></p>
+      <button onclick="closeWelcomeBack()">OK</button>
+    </div>
+  </div>
+
+  <!-- Popup used for both Stats and Achievements -->
+  <div id="panel-popup" class="popup">
+    <div class="popup-box">
+      <h2 id="panel-title"></h2>
+      <div id="panel-content"></div>
+      <button onclick="closePanel()">Close</button>
+    </div>
+  </div>
 
   <!-- ===== TESTING ONLY: delete this whole block before turning in ===== -->
   <div id="test-area">
@@ -31,6 +52,7 @@
   <!-- ===== END OF TESTING ONLY BLOCK ===== -->
 
   <script src="tasks.js"></script>
+  <script src="sprites.js"></script>
   <script src="save.js"></script>
   <script src="game.js"></script>
 </body>

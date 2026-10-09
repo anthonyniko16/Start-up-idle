@@ -1,6 +1,9 @@
 // The name the save is stored under in localStorage
 var saveName = "startUpSave";
 
+// The most time away that still earns money (8 hours, in seconds)
+var maxOfflineSeconds = 8 * 60 * 60;
+
 // Everything that changes while playing is kept in this one object
 var gameState = null;
 
@@ -43,6 +46,7 @@ function loadGame() {
     return;
   }
   fixMissingData();
+  applyOfflineProgress();
 }
 
 // Fills in anything an older save is missing (for example after adding a new feature)
@@ -57,6 +61,52 @@ function fixMissingData() {
     if (gameState.tasks[i] === undefined) {
       gameState.tasks.push(newGame.tasks[i]);
     }
+  }
+}
+
+// Works out how much one task earned while the player was away
+function getOfflineEarnings(i, secondsAway) {
+  var task = gameState.tasks[i];
+  var now = Date.now();
+  if (task.startTime > now) {
+    // the computer's clock went backwards, so start this run over
+    task.startTime = now;
+  }
+  if (task.hired) {
+    var runs = Math.floor(secondsAway / getTaskTime(i));
+    if (runs > 0) {
+      // only restart the timer if a run finished, so a quick reload keeps the progress
+      gameState.tasksCompleted = gameState.tasksCompleted + runs;
+      task.startTime = now;
+    }
+    task.running = true;
+    return runs * getPayout(i);
+  }
+  if (task.running && (now - task.startTime) / 1000 >= getTaskTime(i)) {
+    // a task started by hand finishes once and then waits for a click
+    gameState.tasksCompleted = gameState.tasksCompleted + 1;
+    task.running = false;
+    return getPayout(i);
+  }
+  return 0;
+}
+
+// Pays the player for the time since the last save and shows a welcome back message
+function applyOfflineProgress() {
+  var secondsAway = (Date.now() - gameState.lastSaved) / 1000;
+  if (secondsAway < 0) {
+    secondsAway = 0;
+  }
+  if (secondsAway > maxOfflineSeconds) {
+    secondsAway = maxOfflineSeconds;
+  }
+  var earned = 0;
+  for (var i = 0; i < taskList.length; i++) {
+    earned = earned + getOfflineEarnings(i, secondsAway);
+  }
+  if (earned > 0) {
+    earnMoney(earned);
+    showWelcomeBack(earned, secondsAway);
   }
 }
 
