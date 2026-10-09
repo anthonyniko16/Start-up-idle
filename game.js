@@ -14,6 +14,19 @@ var tickCount = 0;
 // Remembers which sprite each row is showing, so it is only redrawn when it changes
 var lastSprite = [];
 
+// Random events. These are not saved, so a reload ends any event.
+var eventType = "";        // "", "meeting" or "outage"
+var eventEndTime = 0;      // when the meeting offer or the outage runs out
+var outageStartTime = 0;   // when the current outage started
+var boostEndTime = 0;      // payouts are doubled until this time
+var nextEventTime = Date.now() + randomEventDelay();
+
+// Used to play beeps. It is made the first time a sound plays.
+var audioContext = null;
+
+// How much money earned in one run you need before you can pivot
+var pivotGoal = 1000000;
+
 // ---------- Numbers and formulas ----------
 
 // How many seconds one run of a task takes (cut in half at each speed milestone, never under 1)
@@ -28,14 +41,24 @@ function getTaskTime(i) {
   return Math.max(1, taskList[i].time * Math.pow(0.5, milestonesReached));
 }
 
-// The payout multiplier (always 1 for now)
+// The payout multiplier: +10% for each investor point, and x2 during an investor meeting boost
 function getBonus() {
-  return 1;
+  var bonus = 1 + 0.1 * gameState.investors;
+  if (Date.now() < boostEndTime) {
+    bonus = bonus * 2;
+  }
+  return bonus;
 }
 
 // How much one run of a task pays at its current level
 function getPayout(i) {
-  return Math.floor(taskList[i].payout * gameState.tasks[i].level * getBonus());
+  // the + 0.001 stops a number like 10.999999 from being rounded down to 10
+  return Math.floor(taskList[i].payout * gameState.tasks[i].level * getBonus() + 0.001);
+}
+
+// How many investor points the player would get for pivoting right now
+function getPivotPoints() {
+  return Math.floor(gameState.runEarned / pivotGoal);
 }
 
 // The cost to go from the task's current level to the next level
@@ -108,15 +131,20 @@ function getHighestLevel() {
 
 // ---------- Player actions ----------
 
-// Adds money to the player and to the total earned
+// Adds money to the player, the total earned, and the money earned since the last pivot
 function earnMoney(amount) {
   gameState.money = gameState.money + amount;
   gameState.totalEarned = gameState.totalEarned + amount;
+  gameState.runEarned = gameState.runEarned + amount;
 }
 
 // Starts a task when the player clicks it (only if it is unlocked and not running)
 function clickTask(i) {
   var task = gameState.tasks[i];
+  if (isOutage()) {
+    showMessage("The servers are down! Click Fix It first.");
+    return;
+  }
   if (task.unlocked && !task.running) {
     task.running = true;
     task.startTime = Date.now();
@@ -134,6 +162,7 @@ function unlockTask(i) {
     gameState.money = gameState.money - cost;
     gameState.tasks[i].unlocked = true;
     gameState.tasks[i].level = 1;
+    playSound("buy");
     updateScreen();
   }
 }
@@ -144,6 +173,7 @@ function levelUpTask(i) {
   if (gameState.tasks[i].unlocked && gameState.money >= cost) {
     gameState.money = gameState.money - cost;
     gameState.tasks[i].level = gameState.tasks[i].level + 1;
+    playSound("buy");
     updateScreen();
   }
 }
@@ -155,13 +185,39 @@ function hireTask(i) {
   if (task.unlocked && !task.hired && gameState.money >= cost) {
     gameState.money = gameState.money - cost;
     task.hired = true;
-    if (!task.running) {
-      task.running = true;
-      task.startTime = Date.now();
-    }
+    // checkTask() starts a hired task on the next tick if it isn't running
+    playSound("buy");
     showMessage("You hired the " + taskList[i].character + "!");
     updateScreen();
   }
+}
+
+// Starts over with investor points: money, levels, unlocks and hires reset,
+// but achievements, investors and stats are kept
+function pivot() {
+  var points = getPivotPoints();
+  if (points < 1) {
+    return;
+  }
+  var question = "Pivot the company? You get " + points + " investor point(s) (+10% payouts each). " +
+    "Your money, levels, unlocks and hires go back to the start.";
+  if (!confirm(question)) {
+    return;
+  }
+  gameState.investors = gameState.investors + points;
+  gameState.money = 0;
+  gameState.runEarned = 0;
+  gameState.tasks = makeNewGame().tasks;
+  playSound("buy");
+  showMessage("Pivoted! You now have " + gameState.investors + " investor points.");
+  saveGame();
+  updateScreen();
+}
+
+// Turns sound on or off
+function toggleSound() {
+  gameState.soundOn = !gameState.soundOn;
+  updateScreen();
 }
 
 // Saves when the Save button is clicked and tells the player
@@ -176,6 +232,9 @@ function clickSave() {
 // A hired task can finish several runs at once if the tab was in the background.
 function checkTask(i) {
   var task = gameState.tasks[i];
+  if (isOutage()) {
+    return;
+  }
   if (task.hired && !task.running) {
     task.running = true;
     task.startTime = Date.now();
@@ -197,11 +256,13 @@ function checkTask(i) {
     gameState.tasksCompleted = gameState.tasksCompleted + runs;
     task.startTime = task.startTime + runs * time * 1000;
     console.log("DEBUG payout: " + taskList[i].name + " paid " + formatMoney(getPayout(i) * runs) + " for " + runs + " run(s), restarting by itself");
+    playSound("payout");
   } else {
     earnMoney(getPayout(i));
     gameState.tasksCompleted = gameState.tasksCompleted + 1;
     task.running = false;
     console.log("DEBUG payout: " + taskList[i].name + " paid " + formatMoney(getPayout(i)) + ", stopped and waiting for a click");
+    playSound("payout");
   }
 }
 
@@ -239,14 +300,130 @@ function checkAchievements() {
   }
 }
 
-// Runs 10 times a second: checks every task and achievement, then redraws the screen
+// Runs 10 times a second: checks events, every task and achievements, then redraws the screen
 function gameTick() {
   tickCount = tickCount + 1;
+  checkEvents();
   for (var i = 0; i < taskList.length; i++) {
     checkTask(i);
   }
   checkAchievements();
   updateScreen();
+}
+
+// ---------- Random events ----------
+
+// Picks a random wait between 60 and 120 seconds (in milliseconds)
+function randomEventDelay() {
+  return (60 + Math.random() * 60) * 1000;
+}
+
+// Returns true while a server outage is pausing the tasks
+function isOutage() {
+  return eventType == "outage";
+}
+
+// Starts an Investor Meeting or a Server Outage (50/50 chance)
+function startRandomEvent() {
+  var now = Date.now();
+  if (Math.random() < 0.5) {
+    eventType = "meeting";
+    eventEndTime = now + 15000;
+  } else {
+    eventType = "outage";
+    outageStartTime = now;
+    eventEndTime = now + 10000;
+  }
+  nextEventTime = now + randomEventDelay();
+  playSound("event");
+}
+
+// Ends a server outage. Running tasks get the paused time back so they don't jump ahead.
+function endOutage() {
+  var pausedTime = Date.now() - outageStartTime;
+  for (var i = 0; i < taskList.length; i++) {
+    if (gameState.tasks[i].running) {
+      gameState.tasks[i].startTime = gameState.tasks[i].startTime + pausedTime;
+    }
+  }
+  eventType = "";
+}
+
+// Starts a new event when it's time, and ends events that ran out
+function checkEvents() {
+  var now = Date.now();
+  // events only start while the player is looking at the page
+  if (eventType == "" && now >= nextEventTime && !document.hidden) {
+    startRandomEvent();
+  }
+  if (eventType == "meeting" && now >= eventEndTime) {
+    eventType = "";
+    showMessage("You missed the investor meeting.");
+  }
+  if (eventType == "outage" && now >= eventEndTime) {
+    endOutage();
+    showMessage("The servers are back up.");
+  }
+}
+
+// Runs when the button on the event banner is clicked
+function clickEventButton() {
+  if (eventType == "meeting") {
+    eventType = "";
+    boostEndTime = Date.now() + 30000;
+    playSound("buy");
+    showMessage("The investors loved it! Payouts x2 for 30 seconds.");
+  } else if (eventType == "outage") {
+    endOutage();
+    playSound("buy");
+    showMessage("Fixed it! Back to work.");
+  }
+  updateScreen();
+}
+
+// Ends any event and boost (used by Reset)
+function clearEvents() {
+  if (isOutage()) {
+    endOutage();
+  }
+  eventType = "";
+  boostEndTime = 0;
+  nextEventTime = Date.now() + randomEventDelay();
+}
+
+// ---------- Sound ----------
+
+// Plays one short beep. frequency is the pitch in Hz and seconds is how long it lasts.
+function playBeep(frequency, seconds) {
+  if (typeof AudioContext == "undefined") {
+    return;
+  }
+  if (audioContext == null) {
+    audioContext = new AudioContext();
+  }
+  var oscillator = audioContext.createOscillator();
+  var volume = audioContext.createGain();
+  oscillator.type = "square";
+  oscillator.frequency.value = frequency;
+  volume.gain.value = 0.05;
+  oscillator.connect(volume);
+  volume.connect(audioContext.destination);
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + seconds);
+}
+
+// Plays the sound for "payout", "buy" or "event" (unless sound is turned off)
+function playSound(name) {
+  if (!gameState.soundOn) {
+    return;
+  }
+  if (name == "payout") {
+    playBeep(880, 0.08);
+  } else if (name == "buy") {
+    playBeep(520, 0.12);
+  } else if (name == "event") {
+    playBeep(330, 0.3);
+  }
 }
 
 // ---------- Building the page ----------
@@ -377,6 +554,8 @@ function showStats() {
   addPanelLine("Tasks completed: " + gameState.tasksCompleted.toLocaleString("en-US"), "");
   addPanelLine("Characters hired: " + countHired() + " / " + taskList.length, "");
   addPanelLine("Highest level: " + getHighestLevel(), "");
+  addPanelLine("Investor points: " + gameState.investors + " (payouts x" + (1 + 0.1 * gameState.investors).toFixed(1) + ")", "");
+  addPanelLine("Earned since last pivot: " + formatMoney(gameState.runEarned), "");
 }
 
 // Opens the popup with the list of achievements
@@ -402,7 +581,7 @@ function updateSprite(i) {
     characterName = taskList[i].character;
   }
   var frameNumber = 1;
-  if (task.running) {
+  if (task.running && !isOutage()) {
     // switches between frame 1 and 2 every 300 milliseconds
     frameNumber = Math.floor(Date.now() / 300) % 2 + 1;
   }
@@ -437,7 +616,10 @@ function showRowState(i) {
   var row = document.getElementById("row-" + i);
   var status = document.getElementById("status-" + i);
 
-  if (task.hired) {
+  if (isOutage() && task.running) {
+    row.className = "task-row paused";
+    status.textContent = "Paused: server outage!";
+  } else if (task.hired) {
     row.className = "task-row auto";
     status.textContent = "Auto (" + taskList[i].character + "): " + payText;
   } else if (task.running) {
@@ -448,9 +630,14 @@ function showRowState(i) {
     status.textContent = "Click to start: " + payText;
   }
 
+  // during an outage the bar stays where it was when the outage started
+  var now = Date.now();
+  if (isOutage()) {
+    now = outageStartTime;
+  }
   var percent = 0;
   if (task.running) {
-    percent = (Date.now() - task.startTime) / 1000 / time * 100;
+    percent = (now - task.startTime) / 1000 / time * 100;
     if (percent > 100) {
       percent = 100;
     }
@@ -486,10 +673,54 @@ function showUnlockedRow(i) {
   showRowButtons(i);
 }
 
-// Redraws the money, investors and every task row
+// Shows the event banner with the right text and button, or hides it
+function updateEventBanner() {
+  var banner = document.getElementById("event-banner");
+  var text = document.getElementById("event-text");
+  var button = document.getElementById("event-button");
+  var now = Date.now();
+  banner.style.display = "block";
+  button.style.display = "inline-block";
+  if (eventType == "meeting") {
+    banner.className = "meeting";
+    text.textContent = "Investor Meeting! Take it in " + Math.ceil((eventEndTime - now) / 1000) + "s to double all payouts for 30s.";
+    button.textContent = "Take Meeting";
+  } else if (eventType == "outage") {
+    banner.className = "outage";
+    text.textContent = "Server Outage! All tasks are paused for " + Math.ceil((eventEndTime - now) / 1000) + "s.";
+    button.textContent = "Fix It";
+  } else if (now < boostEndTime) {
+    banner.className = "meeting";
+    text.textContent = "Payouts x2! " + Math.ceil((boostEndTime - now) / 1000) + "s left.";
+    button.style.display = "none";
+  } else {
+    banner.style.display = "none";
+  }
+}
+
+// Shows the Pivot button (with how many points it gives) once the player has earned enough
+function updatePivotButton() {
+  var pivotButton = document.getElementById("pivot-button");
+  var points = getPivotPoints();
+  if (points >= 1) {
+    pivotButton.style.display = "inline-block";
+    pivotButton.textContent = "Pivot: +" + points + " investors";
+  } else {
+    pivotButton.style.display = "none";
+  }
+}
+
+// Redraws the top bar, the event banner and every task row
 function updateScreen() {
   document.getElementById("money-display").textContent = formatMoney(gameState.money);
-  document.getElementById("investor-display").textContent = "Investors: " + gameState.investors;
+  document.getElementById("investor-display").textContent = "Investors: " + gameState.investors + " (+" + gameState.investors * 10 + "%)";
+  updatePivotButton();
+  updateEventBanner();
+  if (gameState.soundOn) {
+    document.getElementById("sound-button").textContent = "Sound: On";
+  } else {
+    document.getElementById("sound-button").textContent = "Sound: Off";
+  }
   for (var i = 0; i < taskList.length; i++) {
     if (gameState.tasks[i].unlocked) {
       showUnlockedRow(i);

@@ -13,6 +13,8 @@ function makeNewGame() {
     money: 0,
     totalEarned: 0,
     tasksCompleted: 0,
+    runEarned: 0,
+    soundOn: true,
     tasks: [],
     achievements: {},
     investors: 0,
@@ -134,6 +136,7 @@ function resetGame() {
   if (confirm("Delete your save and start over? This cannot be undone.")) {
     localStorage.removeItem(saveName);
     gameState = makeNewGame();
+    clearEvents();
     updateScreen();
     showMessage("Game reset");
   }

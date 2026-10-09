@@ -15,6 +15,12 @@ HOW TO PLAY
   Hire a character for a task and they will run it for you, even while the
   game is closed (up to 8 hours of offline earnings).
   Stats and Achievements are at the bottom of the page.
+  Once you have earned $1,000,000 since your last pivot, you can Pivot: you
+  start over, but get investor points that give +10% payouts each.
+  Every 1 to 2 minutes a random event happens: an Investor Meeting (click it
+  for double payouts for 30 seconds) or a Server Outage (tasks pause until
+  you click Fix It, or for 10 seconds).
+  The Sound button at the bottom turns the beeps on and off.
 
 FILES
   index.html   The page. Loads the font, style.css and the scripts in this
@@ -30,8 +36,9 @@ FILES
                new game, saving and loading with localStorage, offline
                progress, and Reset.
   game.js      The game itself: formulas, clicking tasks, buying and hiring,
-               the game loop that pays the player, achievements, the stats
-               and achievements popups, and drawing the screen.
+               pivoting, the game loop that pays the player, random events,
+               sound, achievements, the stats and achievements popups, and
+               drawing the screen.
   readme.txt   This file.
   dev-notes.md A log of problems and design changes while building the game.
   test-checklist.md  Step-by-step manual tests for each layer.
@@ -48,4 +55,5 @@ RESETTING THE SAVE
 
 BEFORE TURNING IN
   Delete the block in index.html marked "TESTING ONLY". It holds the
-  "Add $10,000 (testing)" button.
+  "Add $10,000", "Earn $1,000,000" and "Start random event now" testing
+  buttons.

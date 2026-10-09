@@ -80,3 +80,35 @@ Start this section with a fresh game: click Reset and press OK.
     `gameState.lastSaved = Date.now() - 20 * 3600 * 1000; window.onbeforeunload = null; localStorage.setItem("startUpSave", JSON.stringify(gameState)); location.reload();`
     The popup says you were away 8 hours or more and you only get 8 hours of earnings.
 25. Make the window narrow. The welcome, Stats and Achievements popups still fit on the screen.
+
+## Layer 4: pivot, random events, sound
+
+Start this section with a fresh game: click Reset and press OK.
+
+### Pivot
+1. The top bar says "Investors: 0 (+0%)" and there is no Pivot button.
+2. Click "Add $10,000 (testing)". Still no Pivot button (testing money doesn't count toward pivoting).
+3. Unlock Build a Feature, level Fix a Bug a few times and hire the Intern.
+4. Click "Earn $1,000,000 (testing)". A purple "Pivot: +1 investors" button appears in the top bar.
+5. Click it again. The button says "+2 investors".
+6. Click Pivot, then Cancel. Nothing changes.
+7. Click Pivot, then OK. Money is $0, only Fix a Bug is unlocked at level 1, nobody is hired (the Founder is back), and the Pivot button is gone. Top bar: "Investors: 2 (+20%)".
+8. Fix a Bug now says "$12 every 10s" (10 x 1.2). Run it once: you get $12.
+9. Open Achievements: everything you had before is still there. Open Stats: Total earned still includes the old money; it also shows "Investor points: 2 (payouts x1.2)" and "Earned since last pivot".
+10. Reload the page. Investors are still 2.
+
+### Random events
+11. Play for about 2 minutes without clicking the testing buttons. A colored banner should appear under the top bar sometime between 1 and 2 minutes after opening the page.
+12. Click "Start random event now (testing)" until you get a green "Investor Meeting!" banner with a countdown from 15 and a "Take Meeting" button.
+13. Click Take Meeting. The banner says "Payouts x2! 30s left" and counts down. Payouts in every row are doubled (Fix a Bug says $24 with 2 investors). After 30 seconds the banner goes away and the payouts go back.
+14. Get another Investor Meeting and don't click it. After 15 seconds it disappears with the message "You missed the investor meeting."
+15. Start Fix a Bug, then click "Start random event now" until you get a red "Server Outage!" banner. The row border turns red, it says "Paused: server outage!", the bar stops moving, the character stops typing, and no money comes in.
+16. Click a task row during the outage. A message says the servers are down. The task doesn't start.
+17. Click Fix It. The banner disappears and the bar continues from where it stopped (it doesn't jump ahead).
+18. Get another outage and don't click Fix It. After 10 seconds the message "The servers are back up." appears and everything continues.
+19. With hired characters, during an outage their bars stop too, and they continue afterwards.
+
+### Sound
+20. Click something on the page first (browsers block sound until you do). Finish a task: you hear a short high beep.
+21. Level up, unlock or hire: a middle beep. An event starting: a low, longer beep.
+22. Click "Sound: On". It changes to "Sound: Off" and there are no more beeps. Reload the page: it is still off. Click it again to turn sound back on.

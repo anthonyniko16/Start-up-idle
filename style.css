@@ -71,6 +71,36 @@ button:disabled {
   color: #c77dff;
 }
 
+#pivot-button {
+  display: none;
+  background-color: #c77dff;
+}
+
+/* ---------- Event banner ---------- */
+
+#event-banner {
+  display: none;
+  padding: 12px;
+  margin-bottom: 16px;
+  line-height: 20px;
+  border: 4px solid #1b1b2f;
+  color: #1b1b2f;
+}
+
+#event-banner.meeting {
+  background-color: #90be6d;
+}
+
+#event-banner.outage {
+  background-color: #f94144;
+  color: #ffffff;
+}
+
+#event-button {
+  margin-left: 12px;
+  background-color: #ffffff;
+}
+
 /* ---------- Task rows ---------- */
 
 .task-row {
@@ -92,6 +122,10 @@ button:disabled {
   border-color: #90be6d;
 }
 
+.task-row.paused {
+  border-color: #f94144;
+}
+
 .task-row.locked .work-area {
   opacity: 0.4;
 }
@@ -103,6 +137,10 @@ button:disabled {
   flex-grow: 1;
   min-width: 240px;
   cursor: pointer;
+}
+
+.task-row.paused {
+  border-color: #f94144;
 }
 
 .task-row.locked .work-area {
@@ -219,6 +257,9 @@ button:disabled {
 }
 
 #test-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-top: 16px;
   padding: 8px;
   border: 2px dashed #f94144;
