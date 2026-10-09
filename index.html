@@ -18,6 +18,11 @@
     <button id="pivot-button" onclick="pivot()" style="display: none">Pivot</button>
   </div>
 
+  <!-- Small colored squares for the office upgrades the player owns (hover for the name) -->
+  <div id="owned-row" style="display: none">
+    Upgrades: <span id="owned-perks"></span>
+  </div>
+
   <!-- Shows an Investor Meeting offer or a Server Outage, with a countdown bar -->
   <div id="event-banner" style="display: none">
     <div id="event-text"></div>
@@ -33,7 +38,7 @@
     <div id="meeting-time-text"></div>
   </div>
   <div id="security-boost" class="boost" style="display: none">
-    <div>Security Boost: payouts x1.5</div>
+    <div>Security Boost x5: all payouts x5</div>
     <div class="timer-outer"><div class="timer-inner" id="security-timer"></div></div>
     <div id="security-time-text"></div>
   </div>
@@ -45,6 +50,12 @@
   <div id="team-section" style="display: none">
     <h2>Team</h2>
     <div id="team-list"></div>
+  </div>
+
+  <!-- Office Upgrades: one-time purchases. Cards are added by buildPerks() in game.js. -->
+  <div id="perk-section" style="display: none">
+    <h2>Office Upgrades</h2>
+    <div id="perk-list"></div>
   </div>
 
   <div id="bottom-bar">
@@ -105,10 +116,13 @@
   <!-- ===== TESTING ONLY: delete this whole block before turning in ===== -->
   <div id="test-area">
     <button onclick="gameState.money = gameState.money + 10000; updateScreen();">Add $10,000 (testing)</button>
-    <button onclick="earnMoney(1000000); updateScreen();">Earn $1,000,000 (testing)</button>
+    <button onclick="earnMoney(1000000); updateScreen();">Add $1,000,000 (testing)</button>
     <button onclick="nextEventTime = 0;">Start random event now (testing)</button>
     <button onclick="startOutage();">Start outage (testing)</button>
+    <button onclick="testEndOutage();">End outage (testing)</button>
     <button onclick="startBreach();">Start breach (testing)</button>
+    <button onclick="testEndBreach();">End breach (testing)</button>
+    <button onclick="testFailBreach();">Fail breach (testing)</button>
   </div>
   <!-- ===== END OF TESTING ONLY BLOCK ===== -->
 

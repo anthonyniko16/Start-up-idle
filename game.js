@@ -1,12 +1,26 @@
-// The achievements the player can earn
+// The achievements the player can earn. reward is the payout bonus in percent.
+// Earned achievements are kept forever (also after a pivot or losing to a hacker).
 var achievementList = [
-  { id: "firstPaycheck", name: "First Paycheck", description: "Get paid for the first time" },
-  { id: "smallBusiness", name: "Small Business", description: "Earn $1,000 in total" },
-  { id: "firstHire", name: "First Hire", description: "Hire any character" },
-  { id: "level10", name: "Level 10", description: "Get any task to level 10" },
-  { id: "fullOffice", name: "Full Office", description: "Unlock all five tasks" },
-  { id: "fullyAutomated", name: "Fully Automated", description: "Hire all five characters" }
+  { id: "firstPaycheck", name: "First Paycheck", description: "Get paid for the first time", reward: 1 },
+  { id: "smallBusiness", name: "Small Business", description: "Earn $1,000 in total", reward: 2 },
+  { id: "firstHire", name: "First Hire", description: "Hire any task character", reward: 2 },
+  { id: "level10", name: "Level 10", description: "Get any task to level 10", reward: 2 },
+  { id: "fullOffice", name: "Full Office", description: "Unlock all five tasks", reward: 3 },
+  { id: "fullyAutomated", name: "Fully Automated", description: "Hire all five task characters", reward: 5 },
+  { id: "millionaire", name: "Millionaire", description: "Earn $1,000,000 in total", reward: 5 },
+  { id: "level50", name: "Level 50", description: "Get any task to level 50", reward: 3 },
+  { id: "techSupport", name: "Tech Support", description: "Hire IT Support", reward: 2 },
+  { id: "lockedDown", name: "Locked Down", description: "Hire Cybersecurity", reward: 2 },
+  { id: "hackerBeaten", name: "Hacker Beaten", description: "Win a Hacker Breach", reward: 5 },
+  { id: "officeUpgrader", name: "Office Upgrader", description: "Own 4 office upgrades at once", reward: 3 },
+  { id: "dreamOffice", name: "Dream Office", description: "Own all 8 office upgrades at once", reward: 5 }
 ];
+
+// The achievement bonus can never go above this
+var maxAchievementBonus = 1.40;
+
+// How often the game loop runs, in milliseconds (fast so the 2-decimal countdowns look smooth)
+var tickMilliseconds = 50;
 
 // DEBUG: counts game ticks so the console log only prints once a second
 var tickCount = 0;
@@ -19,7 +33,7 @@ var eventType = "";            // "", "meeting" or "outage"
 var eventStartTime = 0;        // when the current meeting offer or outage started
 var eventEndTime = 0;          // when the meeting offer or outage runs out
 var meetingBoostEndTime = 0;   // payouts are x2 until this time
-var securityBoostEndTime = 0;  // payouts are x1.5 until this time
+var securityBoostEndTime = 0;  // payouts are x5 (securityBoostMultiplier) until this time
 var nextEventTime = Date.now() + randomEventDelay();
 
 // Event lengths in seconds
@@ -34,6 +48,7 @@ var breachEndTime = 0;         // 0 means the breach timer is not running
 var breachTotalSeconds = 0;    // how long the timer was at the start (for the bar)
 var problemsLeft = 0;
 var problemAnswer = 0;
+var lastProblemText = "";     // so the same problem is never given twice in a row
 
 // Used to play beeps. It is made the first time a sound plays.
 var audioContext = null;
@@ -61,12 +76,12 @@ function setClass(id, className) {
   }
 }
 
-// Shows or hides an element
+// Shows or hides an element. "" means "use the normal display from style.css".
 function setShown(id, isShown) {
   var element = document.getElementById(id);
   var display = "none";
   if (isShown) {
-    display = "block";
+    display = "";
   }
   if (element.style.display != display) {
     element.style.display = display;
@@ -110,10 +125,33 @@ function getTypingFrame() {
   return Math.floor(Date.now() / 300) % 2 + 1;
 }
 
+// Turns seconds left into countdown text: whole seconds (rounded up) above 10, like "59s",
+// and two decimals from 10 down, like "9.89s". Never below 0.
+function formatCountdown(secondsLeft) {
+  if (secondsLeft < 0) {
+    secondsLeft = 0;
+  }
+  if (secondsLeft > 10) {
+    return Math.ceil(secondsLeft) + "s";
+  }
+  return secondsLeft.toFixed(2) + "s";
+}
+
+// Shows a countdown: the bar and the "Time left" text both come from the same secondsLeft number
+function showCountdown(barId, textId, secondsLeft, totalSeconds) {
+  setBarWidth(barId, secondsLeft / totalSeconds * 100);
+  setText(textId, "Time left: " + formatCountdown(secondsLeft));
+}
+
 // ---------- Numbers and formulas ----------
 
+// ---------- Formulas (all in one place) ----------
+//
+// payout = basePayout * level * investorBonus * achievementBonus * allPayoutPerks * taskPerk * eventBonus
+// time   = max(1, baseTime * 0.5 ^ halvings * 0.96 ^ floor(level / 5) * standingDesks)
+
 // How many seconds one run of a task takes.
-// Cut in half at each speed milestone, 4% shorter every 5 levels, never under 1 second.
+// Cut in half at each speed milestone, 4% shorter every 5 levels, 5% shorter with Standing Desks.
 function getTaskTime(i) {
   var level = gameState.tasks[i].level;
   var halvings = 0;
@@ -122,7 +160,11 @@ function getTaskTime(i) {
       halvings = halvings + 1;
     }
   }
-  var time = taskList[i].time * Math.pow(0.5, halvings) * Math.pow(fiveLevelSpeedUp, Math.floor(level / 5));
+  var standingDesks = 1;
+  if (hasPerk("desks")) {
+    standingDesks = getPerk("desks").value;
+  }
+  var time = taskList[i].time * Math.pow(0.5, halvings) * Math.pow(fiveLevelSpeedUp, Math.floor(level / 5)) * standingDesks;
   return Math.max(1, time);
 }
 
@@ -131,27 +173,81 @@ function formatSeconds(seconds) {
   return Math.round(seconds * 100) / 100 + "s";
 }
 
-// The multiplier from events: x2 during an investor meeting boost, x1.5 during a security boost
+// +10% for each investor point
+function getInvestorBonus() {
+  return 1 + 0.1 * gameState.investors;
+}
+
+// Adds up the rewards of every earned achievement, in percent (for example 7 means +7%)
+function getAchievementPercent() {
+  var percent = 0;
+  for (var a = 0; a < achievementList.length; a++) {
+    if (gameState.achievements[achievementList[a].id]) {
+      percent = percent + achievementList[a].reward;
+    }
+  }
+  return percent;
+}
+
+// 1 plus the achievement rewards as a decimal (1.07 for +7%), at most 1.40
+function getAchievementBonus() {
+  return Math.min(maxAchievementBonus, 1 + getAchievementPercent() / 100);
+}
+
+// Upgrades that boost every task: Coffee Machine and Corner Office
+function getAllPayoutPerks() {
+  var bonus = 1;
+  if (hasPerk("coffee")) {
+    bonus = bonus * getPerk("coffee").value;
+  }
+  if (hasPerk("corner")) {
+    bonus = bonus * getPerk("corner").value;
+  }
+  return bonus;
+}
+
+// Returns true if the number i is in the list
+function listHas(list, i) {
+  for (var k = 0; k < list.length; k++) {
+    if (list[k] == i) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Upgrades that boost only some tasks: Second Monitor and Ergonomic Chairs
+function getTaskPerk(i) {
+  if (hasPerk("monitor") && listHas(monitorTasks, i)) {
+    return getPerk("monitor").value;
+  }
+  if (hasPerk("chairs") && listHas(chairsTasks, i)) {
+    return getPerk("chairs").value;
+  }
+  return 1;
+}
+
+// The multiplier from events: x2 during an investor meeting boost, x5 during a security boost
 function getEventBonus() {
   var bonus = 1;
   if (Date.now() < meetingBoostEndTime) {
     bonus = bonus * 2;
   }
   if (Date.now() < securityBoostEndTime) {
-    bonus = bonus * 1.5;
+    bonus = bonus * securityBoostMultiplier;
   }
   return bonus;
 }
 
-// The payout multiplier: +10% for each investor point, times the event bonus
-function getBonus() {
-  return (1 + 0.1 * gameState.investors) * getEventBonus();
+// Everything that multiplies a payout, except the task's own base payout and level
+function getBonus(i) {
+  return getInvestorBonus() * getAchievementBonus() * getAllPayoutPerks() * getTaskPerk(i) * getEventBonus();
 }
 
-// How much one run of a task pays at its current level
+// How much one run of a task pays right now
 function getPayout(i) {
   // the + 0.001 stops a number like 10.999999 from being rounded down to 10
-  return Math.floor(taskList[i].payout * gameState.tasks[i].level * getBonus() + 0.001);
+  return Math.floor(taskList[i].payout * gameState.tasks[i].level * getBonus(i) + 0.001);
 }
 
 // How many investor points the player would get for pivoting right now
@@ -179,18 +275,69 @@ function getTeamLevelCost(t) {
   return Math.floor(teamList[t].levelCostBase * Math.pow(1.15, gameState.team[t].level) + 0.001);
 }
 
-// How many seconds a server outage lasts (shorter with IT Support, never under 3)
+// How many seconds a server outage lasts.
+// 30 seconds, shorter with IT Support (never under 3), and 25% shorter with the Server Rack.
 function getOutageSeconds() {
+  var serverRack = 1;
+  if (hasPerk("rack")) {
+    serverRack = getPerk("rack").value;
+  }
   var itLevel = getTeamLevel(0);
   if (itLevel == 0) {
-    return outageMaxSeconds;
+    return outageMaxSeconds * serverRack;
   }
-  return Math.max(3, outageMaxSeconds * Math.pow(0.85, itLevel));
+  return Math.max(3, outageMaxSeconds * Math.pow(0.85, itLevel) * serverRack);
 }
 
-// How many seconds the player gets to beat a hacker (3 more per Cybersecurity level)
+// How many seconds the player gets to beat a hacker
+// (3 more per Cybersecurity level, 10 more with Security Cameras)
 function getBreachSeconds() {
-  return breachBaseSeconds + 3 * getTeamLevel(1);
+  var seconds = breachBaseSeconds + 3 * getTeamLevel(1);
+  if (hasPerk("cameras")) {
+    seconds = seconds + getPerk("cameras").value;
+  }
+  return seconds;
+}
+
+// ---------- Office Upgrades ----------
+
+// Finds an upgrade in perkList by its id
+function getPerk(id) {
+  for (var k = 0; k < perkList.length; k++) {
+    if (perkList[k].id == id) {
+      return perkList[k];
+    }
+  }
+  return null;
+}
+
+// Returns true if the player owns an upgrade
+function hasPerk(id) {
+  return gameState.perks[id] == true;
+}
+
+// Counts how many upgrades the player owns
+function countPerks() {
+  var count = 0;
+  for (var k = 0; k < perkList.length; k++) {
+    if (hasPerk(perkList[k].id)) {
+      count = count + 1;
+    }
+  }
+  return count;
+}
+
+// Buys an upgrade (k is its number in perkList)
+function buyPerk(k) {
+  var perk = perkList[k];
+  if (!hasPerk(perk.id) && gameState.money >= perk.cost) {
+    gameState.money = gameState.money - perk.cost;
+    gameState.perks[perk.id] = true;
+    playSound("buy");
+    showMessage("Bought " + perk.name + "!");
+    checkAchievements();
+    updateScreen();
+  }
 }
 
 // Turns a number into money text like $1,234 or $1.2M
@@ -299,6 +446,7 @@ function levelUpTask(i) {
     gameState.money = gameState.money - cost;
     gameState.tasks[i].level = gameState.tasks[i].level + 1;
     playSound("buy");
+    checkAchievements();
     updateScreen();
   }
 }
@@ -313,6 +461,7 @@ function hireTask(i) {
     // checkTask() starts a hired task on the next tick if it isn't running
     playSound("buy");
     showMessage("You hired the " + taskList[i].character + "!");
+    checkAchievements();
     updateScreen();
   }
 }
@@ -326,6 +475,7 @@ function hireTeam(t) {
     gameState.team[t].level = 1;
     playSound("buy");
     showMessage("You hired " + teamList[t].name + "!");
+    checkAchievements();
     updateScreen();
   }
 }
@@ -342,7 +492,7 @@ function levelUpTeam(t) {
   }
 }
 
-// Resets money, tasks and the team to the start. Achievements, investors and stats are kept.
+// Resets money, tasks, the team and office upgrades to the start. Achievements, investors and stats are kept.
 // Used by Pivot and by losing to a hacker.
 function startOverRun() {
   var newGame = makeNewGame();
@@ -350,6 +500,7 @@ function startOverRun() {
   gameState.runEarned = 0;
   gameState.tasks = newGame.tasks;
   gameState.team = newGame.team;
+  gameState.perks = {};
 }
 
 // Starts over with investor points
@@ -359,7 +510,7 @@ function pivot() {
     return;
   }
   var question = "Pivot the company? You get " + points + " investor point(s) (+10% payouts each). " +
-    "Your money, levels, unlocks and hires (including your team) go back to the start.";
+    "Your money, levels, unlocks, hires (including your team) and office upgrades go back to the start.";
   if (!confirm(question)) {
     return;
   }
@@ -401,7 +552,7 @@ function checkTask(i) {
   }
   var time = getTaskTime(i);
   var secondsPassed = (Date.now() - task.startTime) / 1000;
-  if (tickCount % 10 == 0) {
+  if (tickCount % 20 == 0) {
     console.log("DEBUG tick: " + taskList[i].name + " running, " + secondsPassed.toFixed(1) + " of " + time + " seconds");
   }
   if (secondsPassed < time) {
@@ -443,6 +594,27 @@ function isAchievementDone(id) {
   if (id == "fullyAutomated") {
     return countHired() == taskList.length;
   }
+  if (id == "millionaire") {
+    return gameState.totalEarned >= 1000000;
+  }
+  if (id == "level50") {
+    return getHighestLevel() >= 50;
+  }
+  if (id == "techSupport") {
+    return gameState.team[0].hired;
+  }
+  if (id == "lockedDown") {
+    return gameState.team[1].hired;
+  }
+  if (id == "hackerBeaten") {
+    return gameState.breachesWon >= 1;
+  }
+  if (id == "officeUpgrader") {
+    return countPerks() >= 4;
+  }
+  if (id == "dreamOffice") {
+    return countPerks() == perkList.length;
+  }
   return false;
 }
 
@@ -452,12 +624,12 @@ function checkAchievements() {
     var id = achievementList[a].id;
     if (!gameState.achievements[id] && isAchievementDone(id)) {
       gameState.achievements[id] = true;
-      showMessage("Achievement: " + achievementList[a].name);
+      showMessage("Achievement unlocked: " + achievementList[a].name + " (+" + achievementList[a].reward + "% payouts)");
     }
   }
 }
 
-// Runs 10 times a second: checks events, every task and achievements, then redraws the screen
+// Runs every 50 ms: checks events, every task and achievements, then redraws the screen
 function gameTick() {
   tickCount = tickCount + 1;
   checkEvents();
@@ -578,34 +750,43 @@ function randomInt(min, max) {
   return min + Math.floor(Math.random() * (max - min + 1));
 }
 
-// Makes a new random math problem, shows it, and remembers the answer
-function newProblem() {
+// Makes a random easy math problem. Sets problemAnswer and returns the text, like "6 x 7".
+function makeProblemText() {
   var type = randomInt(1, 4);
   var a = 0;
   var b = 0;
-  var text = "";
   if (type == 1) {
-    a = randomInt(10, 99);
-    b = randomInt(10, 99);
-    text = a + " + " + b;
+    a = randomInt(1, 20);
+    b = randomInt(1, 20);
     problemAnswer = a + b;
-  } else if (type == 2) {
-    a = randomInt(30, 99);
-    b = randomInt(10, a - 1);
-    text = a + " - " + b;
-    problemAnswer = a - b;
-  } else if (type == 3) {
-    a = randomInt(3, 9);
-    b = randomInt(11, 25);
-    text = a + " x " + b;
-    problemAnswer = a * b;
-  } else {
-    // pick the answer first so the division always comes out even
-    b = randomInt(3, 9);
-    problemAnswer = randomInt(6, 20);
-    a = b * problemAnswer;
-    text = a + " / " + b;
+    return a + " + " + b;
   }
+  if (type == 2) {
+    a = randomInt(10, 30);
+    b = randomInt(1, 9);
+    problemAnswer = a - b;
+    return a + " - " + b;
+  }
+  if (type == 3) {
+    a = randomInt(2, 9);
+    b = randomInt(2, 9);
+    problemAnswer = a * b;
+    return a + " x " + b;
+  }
+  // division: pick the answer first so it always comes out even
+  b = randomInt(2, 9);
+  problemAnswer = randomInt(2, 9);
+  a = b * problemAnswer;
+  return a + " / " + b;
+}
+
+// Shows a new problem that is different from the last one, and clears the answer box
+function newProblem() {
+  var text = makeProblemText();
+  while (text == lastProblemText) {
+    text = makeProblemText();
+  }
+  lastProblemText = text;
   setText("breach-problem", text + " = ?");
   document.getElementById("breach-answer").value = "";
 }
@@ -656,17 +837,30 @@ function submitBreachAnswer() {
   updateScreen();
 }
 
-// The player answered all 3 problems in time
-function winBreach() {
-  gameState.breachActive = false;
+// Closes the breach popup and stops the breach timer (used when winning and losing)
+function closeBreachPopup() {
   breachEndTime = 0;
+  var input = document.getElementById("breach-answer");
+  input.value = "";
+  input.blur();
   document.getElementById("breach-popup").style.display = "none";
+}
+
+// The player answered all 3 problems in time: the breach is over and the game goes on
+function winBreach() {
+  closeBreachPopup();
+  gameState.breachActive = false;
+  gameState.breachesWon = gameState.breachesWon + 1;
   showMessage("Hacker beaten!");
   if (gameState.team[1].hired) {
     securityBoostEndTime = Date.now() + securityBoostSeconds * 1000;
-    showMessage("Security Boost! Payouts x1.5 for 60 seconds.");
+    showMessage("Security Boost! Payouts x" + securityBoostMultiplier + " for 60 seconds.");
   }
+  // the next event comes 60-120 seconds from now, like after any other event
+  nextEventTime = Date.now() + randomEventDelay();
   playSound("buy");
+  checkAchievements();
+  // save right away so a refresh after winning is not counted as a loss
   saveGame();
   updateScreen();
 }
@@ -674,11 +868,37 @@ function winBreach() {
 // The timer ran out (or the page was reloaded during a breach): show the "infiltrated" popup.
 // gameState.breachActive stays true until the player clicks Start Over.
 function loseBreach() {
-  breachEndTime = 0;
-  document.getElementById("breach-popup").style.display = "none";
+  closeBreachPopup();
   document.getElementById("lost-popup").style.display = "block";
   playSound("event");
 }
+
+// ===== TESTING ONLY: used by the testing buttons in index.html =====
+
+// Ends a server outage right away (tasks continue where they stopped)
+function testEndOutage() {
+  if (isOutage()) {
+    endOutage();
+    showMessage("Outage ended (testing)");
+    updateScreen();
+  }
+}
+
+// Ends a hacker breach as if the player won
+function testEndBreach() {
+  if (isBreachRunning()) {
+    winBreach();
+  }
+}
+
+// Ends a hacker breach as if the timer ran out
+function testFailBreach() {
+  if (isBreachRunning()) {
+    loseBreach();
+  }
+}
+
+// ===== END OF TESTING ONLY =====
 
 // Runs when Start Over is clicked after losing to a hacker
 function clickStartOver() {
@@ -763,9 +983,12 @@ function makeWorkArea(i) {
 
   var info = makeDiv("task-info", "info-" + i);
   info.appendChild(makeDiv("task-name", "name-" + i));
-  var barOuter = makeDiv("progress-outer", "bar-outer-" + i);
+  var barRow = makeDiv("bar-row", "bar-outer-" + i);
+  var barOuter = makeDiv("progress-outer", "bar-box-" + i);
   barOuter.appendChild(makeDiv("progress-inner", "bar-" + i));
-  info.appendChild(barOuter);
+  barRow.appendChild(barOuter);
+  barRow.appendChild(makeDiv("task-time", "time-" + i));
+  info.appendChild(barRow);
   info.appendChild(makeDiv("task-status", "status-" + i));
   workArea.appendChild(info);
   return workArea;
@@ -827,6 +1050,34 @@ function buildTeamRows() {
   }
 }
 
+// Creates one Office Upgrade card: name, effect, cost and a Buy button
+function makePerkCard(k) {
+  var card = makeDiv("perk-card", "perk-card-" + k);
+  var name = makeDiv("perk-name", "perk-name-" + k);
+  name.textContent = perkList[k].name;
+  card.appendChild(name);
+  var effect = makeDiv("perk-effect", "perk-effect-" + k);
+  effect.textContent = perkList[k].effect;
+  card.appendChild(effect);
+  card.appendChild(makeButton("perk-buy-" + k, function () {
+    buyPerk(k);
+  }));
+  return card;
+}
+
+// Creates the Office Upgrades cards and the small colored squares for owned upgrades
+function buildPerks() {
+  var perkListDiv = document.getElementById("perk-list");
+  var ownedDiv = document.getElementById("owned-perks");
+  for (var k = 0; k < perkList.length; k++) {
+    perkListDiv.appendChild(makePerkCard(k));
+    var square = makeDiv("owned-square", "owned-" + k);
+    square.style.backgroundColor = perkList[k].color;
+    square.title = perkList[k].name + ": " + perkList[k].effect;
+    ownedDiv.appendChild(square);
+  }
+}
+
 // ---------- Popups and messages ----------
 
 // Shows a short message at the bottom of the screen that goes away after 3 seconds
@@ -843,8 +1094,8 @@ function showMessage(text) {
 // Shows the welcome back popup with the money earned while away
 function showWelcomeBack(earned, secondsAway) {
   var text = "You were away for " + formatTime(secondsAway) + ". ";
-  if (secondsAway >= maxOfflineSeconds) {
-    text = "You were away for 8 hours or more (the most that counts). ";
+  if (secondsAway >= getOfflineCapSeconds()) {
+    text = "You were away for " + getOfflineCapSeconds() / 3600 + " hours or more (the most that counts). ";
   }
   text = text + "Your company earned " + formatMoney(earned) + " while you were gone.";
   document.getElementById("welcome-text").textContent = text;
@@ -884,6 +1135,9 @@ function showStats() {
   addPanelLine("Characters hired: " + countHired() + " / " + taskList.length, "");
   addPanelLine("Highest level: " + getHighestLevel(), "");
   addPanelLine("IT Support level: " + getTeamLevel(0) + ", Cybersecurity level: " + getTeamLevel(1), "");
+  addPanelLine("Hackers beaten: " + gameState.breachesWon, "");
+  addPanelLine("Office upgrades owned: " + countPerks() + " / " + perkList.length, "");
+  addPanelLine("Achievement bonus: +" + Math.round((getAchievementBonus() - 1) * 100) + "% payouts", "");
   addPanelLine("Investor points: " + gameState.investors + " (payouts x" + (1 + 0.1 * gameState.investors).toFixed(1) + ")", "");
   addPanelLine("Earned since last pivot: " + formatMoney(gameState.runEarned), "");
 }
@@ -891,12 +1145,14 @@ function showStats() {
 // Opens the popup with the list of achievements
 function showAchievements() {
   openPanel("Achievements");
+  addPanelLine("Achievement bonus: +" + Math.round((getAchievementBonus() - 1) * 100) + "% payouts", "bonus-line");
   for (var a = 0; a < achievementList.length; a++) {
     var achievement = achievementList[a];
+    var text = achievement.name + " - " + achievement.description + " (+" + achievement.reward + "% payouts)";
     if (gameState.achievements[achievement.id]) {
-      addPanelLine("[X] " + achievement.name + " - " + achievement.description, "done");
+      addPanelLine("[X] " + text, "done");
     } else {
-      addPanelLine("[ ] " + achievement.name + " - " + achievement.description, "not-done");
+      addPanelLine("[ ] " + text, "not-done");
     }
   }
 }
@@ -931,11 +1187,30 @@ function showLockedRow(i) {
   setShown("hire-" + i, false);
 }
 
-// Sets the row's look (ready, working, auto or paused), its status text and progress bar
-function showRowState(i) {
+// How many seconds are left on a task's run (the full time if it isn't running).
+// The bar and the countdown text both come from this one number.
+function getTimeLeft(i) {
   var task = gameState.tasks[i];
   var time = getTaskTime(i);
-  var payText = formatMoney(getPayout(i)) + " every " + formatSeconds(time);
+  if (!task.running) {
+    return time;
+  }
+  // during an outage the clock is frozen at the moment the outage started
+  var now = Date.now();
+  if (isOutage()) {
+    now = eventStartTime;
+  }
+  var timeLeft = time - (now - task.startTime) / 1000;
+  if (timeLeft < 0) {
+    timeLeft = 0;
+  }
+  return timeLeft;
+}
+
+// Sets the row's look (ready, working, auto or paused), its status text, progress bar and countdown
+function showRowState(i) {
+  var task = gameState.tasks[i];
+  var payText = formatMoney(getPayout(i)) + " per run";
 
   if (isOutage() && task.running) {
     setClass("row-" + i, "task-row paused");
@@ -951,16 +1226,14 @@ function showRowState(i) {
     setText("status-" + i, "Click to start: " + payText);
   }
 
-  // during an outage the bar stays where it was when the outage started
-  var now = Date.now();
-  if (isOutage()) {
-    now = eventStartTime;
-  }
+  var time = getTaskTime(i);
+  var timeLeft = getTimeLeft(i);
   var percent = 0;
   if (task.running) {
-    percent = (now - task.startTime) / 1000 / time * 100;
+    percent = (time - timeLeft) / time * 100;
   }
   setBarWidth("bar-" + i, percent);
+  setText("time-" + i, formatCountdown(timeLeft));
 }
 
 // Shows the Level Up and Hire buttons with their costs (greyed out if too expensive)
@@ -1002,7 +1275,7 @@ function getTeamStatus(t) {
   }
   var text = "Hacker breach timer: " + getBreachSeconds() + "s";
   if (gameState.team[1].hired) {
-    text = text + ", win = x1.5 for 60s";
+    text = text + ", win = x" + securityBoostMultiplier + " for 60s";
   }
   return text;
 }
@@ -1058,6 +1331,25 @@ function updateTeamSection() {
   }
 }
 
+// Shows the Office Upgrades section and the row of owned upgrades
+function updatePerks() {
+  setShown("perk-section", gameState.totalEarned >= perksUnlockEarned);
+  setShown("owned-row", countPerks() > 0);
+  for (var k = 0; k < perkList.length; k++) {
+    var perk = perkList[k];
+    setShown("owned-" + k, hasPerk(perk.id));
+    if (hasPerk(perk.id)) {
+      setClass("perk-card-" + k, "perk-card owned");
+      setText("perk-buy-" + k, "Owned");
+      setDisabled("perk-buy-" + k, true);
+    } else {
+      setClass("perk-card-" + k, "perk-card");
+      setText("perk-buy-" + k, "Buy " + formatMoney(perk.cost));
+      setDisabled("perk-buy-" + k, gameState.money < perk.cost);
+    }
+  }
+}
+
 // Shows the event banner for an Investor Meeting offer or a Server Outage, or hides it
 function updateEventBanner() {
   var now = Date.now();
@@ -1077,11 +1369,10 @@ function updateEventBanner() {
     setText("event-text", "Server Outage! All tasks are paused.");
     setShown("event-button", false);
   }
-  setText("event-time-text", "Time left: " + Math.ceil(secondsLeft) + " s");
-  setBarWidth("event-timer", secondsLeft / totalSeconds * 100);
+  showCountdown("event-timer", "event-time-text", secondsLeft, totalSeconds);
 }
 
-// Shows or hides one boost bar (x2 meeting or x1.5 security) with its countdown
+// Shows or hides one boost bar (x2 meeting or x5 security) with its countdown
 function updateBoost(name, endTime, totalSeconds) {
   var secondsLeft = (endTime - Date.now()) / 1000;
   if (secondsLeft <= 0) {
@@ -1089,8 +1380,7 @@ function updateBoost(name, endTime, totalSeconds) {
     return;
   }
   setShown(name + "-boost", true);
-  setText(name + "-time-text", "Time left: " + Math.ceil(secondsLeft) + " s");
-  setBarWidth(name + "-timer", secondsLeft / totalSeconds * 100);
+  showCountdown(name + "-timer", name + "-time-text", secondsLeft, totalSeconds);
 }
 
 // Updates the breach popup: problems left, the countdown bar and the hacker sprite
@@ -1100,8 +1390,7 @@ function updateBreachPopup() {
   }
   var secondsLeft = (breachEndTime - Date.now()) / 1000;
   setText("breach-left", "Problems left: " + problemsLeft);
-  setText("breach-time-text", "Time left: " + Math.max(0, Math.ceil(secondsLeft)) + " s");
-  setBarWidth("breach-timer", secondsLeft / breachTotalSeconds * 100);
+  showCountdown("breach-timer", "breach-time-text", secondsLeft, breachTotalSeconds);
   if (secondsLeft < 10) {
     setClass("breach-timer", "timer-inner danger");
   } else {
@@ -1142,6 +1431,7 @@ function updateScreen() {
     updateSprite(i);
   }
   updateTeamSection();
+  updatePerks();
 }
 
 // ---------- Starting the game ----------
@@ -1176,14 +1466,17 @@ function startGame() {
   loadGame();
   buildTaskRows();
   buildTeamRows();
-  setInterval(gameTick, 100);
+  buildPerks();
+  setInterval(gameTick, tickMilliseconds);
   setInterval(saveGame, 10000);
   window.onbeforeunload = saveGame;
-  console.log("DEBUG startGame: game loaded and the 100 ms tick timer is running");
+  console.log("DEBUG startGame: game loaded and the " + tickMilliseconds + " ms tick timer is running");
   // a breach was going on when the page was closed or refreshed, so it counts as a loss
   if (gameState.breachActive) {
     loseBreach();
   }
+  // gives old saves any achievements they already qualify for
+  checkAchievements();
   updateScreen();
 }
 

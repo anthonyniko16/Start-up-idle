@@ -8,14 +8,19 @@ HOW TO RUN
   Fonts. Without it the game still works and uses a plain fallback font.
 
 HOW TO PLAY
-  Click a task (the left part of its row) to start it. When the bar fills
-  up you get paid. Use the money to unlock new tasks and level them up.
+  Click a task (the left part of its row) to start it. The countdown next to
+  its bar shows the time left. When the bar fills up you get paid. Use the money to unlock new tasks and level them up.
   Leveling up makes a task pay more. Every 5 levels a task gets 4% faster,
   and at levels 10, 25, 50 and 100 it gets twice as fast (never faster than
   1 second).
   Hire a character for a task and they will run it for you, even while the
-  game is closed (up to 8 hours of offline earnings).
-  Stats and Achievements are at the bottom of the page.
+  game is closed (up to 8 hours of offline earnings, 12 with the Snack Bar).
+  Stats and Achievements are at the bottom of the page. Every achievement
+  gives a permanent payout bonus (up to +40% in total) that you keep even
+  after a pivot or losing to a hacker.
+  Office Upgrades (after $1,000 earned) are one-time purchases that make
+  payouts bigger, tasks faster, outages shorter and so on. You lose them
+  when you pivot or lose to a hacker.
   Once you have earned $1,000,000 since your last pivot, you can Pivot: you
   start over, but get investor points that give +10% payouts each.
   Every 1 to 2 minutes a random event happens:
@@ -24,9 +29,9 @@ HOW TO PLAY
     - Server Outage (after $5,000 earned): all tasks pause for up to 30
       seconds. Hire and level IT Support to make outages shorter.
     - Hacker Breach (after $100,000 earned, rarer): answer 3 math problems
-      before the timer runs out. Cybersecurity gives more time and a x1.5
+      before the timer runs out. Cybersecurity gives more time and a x5
       payout boost for 60 seconds when you win. If you lose, you start over
-      (you keep investors, achievements and stats). Refreshing the page
+      (you keep investors, achievements and stats, but lose upgrades). Refreshing the page
       during a breach counts as losing.
   The Team section (IT Support and Cybersecurity) appears after $10,000
   earned. Both can be leveled up to 15.
@@ -39,14 +44,16 @@ FILES
   tasks.js     The list of tasks and all their numbers (time, payout,
                unlock cost, level cost base, hire cost). Change numbers here
                to tune the game. Also the speed-up rules, the team (IT
-               Support and Cybersecurity) and when events unlock.
+               Support and Cybersecurity), when events unlock, the Security
+               Boost multiplier and the Office Upgrades (perkList).
   sprites.js   The pixel art. Each character is a 16x16 grid of letters,
                each letter is a color. Also the function that draws a
                sprite onto a canvas.
   save.js      gameState (everything that changes while playing), making a
                new game, saving and loading with localStorage, offline
                progress, and Reset.
-  game.js      The game itself: formulas, clicking tasks, buying and hiring,
+  game.js      The game itself: formulas (all in one "Formulas" section),
+               office upgrades, achievements and their rewards, clicking tasks, buying and hiring,
                the team, pivoting, the game loop that pays the player, random
                events and the hacker breach, sound, achievements, the stats
                and achievements popups, and drawing the screen.
@@ -65,6 +72,10 @@ RESETTING THE SAVE
   and starts a new game. (Clearing the browser's site data also deletes it.)
 
 BEFORE TURNING IN
-  Delete the block in index.html marked "TESTING ONLY". It holds the
-  "Add $10,000", "Earn $1,000,000", "Start random event now",
-  "Start outage" and "Start breach" testing buttons.
+  Delete the blocks marked "TESTING ONLY":
+    - index.html: the testing buttons ("Add $10,000", "Add $1,000,000",
+      "Start random event now", "Start outage", "End outage",
+      "Start breach", "End breach", "Fail breach").
+    - game.js: testEndOutage, testEndBreach and testFailBreach.
+    - style.css: the #test-area styles.
+  Also remove the console.log lines that start with "DEBUG" in game.js.

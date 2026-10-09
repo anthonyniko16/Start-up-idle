@@ -1,8 +1,13 @@
 // The name the save is stored under in localStorage
 var saveName = "startUpSave";
 
-// The most time away that still earns money (8 hours, in seconds)
-var maxOfflineSeconds = 8 * 60 * 60;
+// The most time away that still earns money, in seconds (8 hours, or 12 with the Snack Bar)
+function getOfflineCapSeconds() {
+  if (hasPerk("snacks")) {
+    return getPerk("snacks").value * 60 * 60;
+  }
+  return 8 * 60 * 60;
+}
 
 // Everything that changes while playing is kept in this one object
 var gameState = null;
@@ -16,8 +21,10 @@ function makeNewGame() {
     runEarned: 0,
     soundOn: true,
     breachActive: false,
+    breachesWon: 0,
     tasks: [],
     team: [],
+    perks: {},
     achievements: {},
     investors: 0,
     lastSaved: Date.now()
@@ -83,6 +90,15 @@ function fixMissingData() {
     }
   }
   gameState.breachActive = gameState.breachActive == true;
+  if (typeof gameState.perks != "object" || gameState.perks == null) {
+    gameState.perks = {};
+  }
+  if (typeof gameState.achievements != "object" || gameState.achievements == null) {
+    gameState.achievements = {};
+  }
+  if (typeof gameState.breachesWon != "number" || isNaN(gameState.breachesWon)) {
+    gameState.breachesWon = 0;
+  }
   if (typeof gameState.money != "number" || isNaN(gameState.money)) {
     gameState.money = 0;
   }
@@ -136,8 +152,8 @@ function applyOfflineProgress() {
   if (secondsAway < 0) {
     secondsAway = 0;
   }
-  if (secondsAway > maxOfflineSeconds) {
-    secondsAway = maxOfflineSeconds;
+  if (secondsAway > getOfflineCapSeconds()) {
+    secondsAway = getOfflineCapSeconds();
   }
   var earned = 0;
   for (var i = 0; i < taskList.length; i++) {

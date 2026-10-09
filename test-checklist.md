@@ -5,7 +5,13 @@ Open index.html in a browser (double-click it). Follow the steps in order and ch
 ## Before you start: did everything load?
 
 1. Open index.html. If a red box at the top says a file did not load, the game won't run. Put the named file in the same folder as index.html with exactly that name.
-2. Press F12 and open the Console tab. While the DEBUG lines are still in the code, you should see "DEBUG startGame: game loaded and the 100 ms tick timer is running" and no red errors.
+2. Press F12 and open the Console tab. While the DEBUG lines are still in the code, you should see "DEBUG startGame: game loaded and the 50 ms tick timer is running" and no red errors.
+
+**Note on the older sections (Layers 1 to 5):** they were written for earlier versions. Since Layer 6:
+- A task row shows its payout as "$10 per run", and its time is the countdown to the right of the bar (not "every 10s").
+- Achievement messages say "Achievement unlocked: First Paycheck (+1% payouts)", and achievements make payouts a little bigger. So exact dollar amounts in old steps can be a few percent higher.
+- "Earn $1,000,000 (testing)" is now called "Add $1,000,000 (testing)" and does the same thing.
+- The Security Boost is x5 (it was x1.5).
 
 ## Layer 1: one task
 
@@ -89,7 +95,7 @@ Start this section with a fresh game: click Reset and press OK.
 1. The top bar says "Investors: 0 (+0%)" and there is no Pivot button.
 2. Click "Add $10,000 (testing)". Still no Pivot button (testing money doesn't count toward pivoting).
 3. Unlock Build a Feature, level Fix a Bug a few times and hire the Intern.
-4. Click "Earn $1,000,000 (testing)". A purple "Pivot: +1 investors" button appears in the top bar.
+4. Click "Add $1,000,000 (testing)". A purple "Pivot: +1 investors" button appears in the top bar.
 5. Click it again. The button says "+2 investors".
 6. Click Pivot, then Cancel. Nothing changes.
 7. Click Pivot, then OK. Money is $0, only Fix a Bug is unlocked at level 1, nobody is hired (the Founder is back), and the Pivot button is gone. Top bar: "Investors: 2 (+20%)".
@@ -127,11 +133,11 @@ Start this section with a fresh game: click Reset and press OK.
 
 ### Team: IT Support and Cybersecurity
 9. With less than $10,000 earned in total, there is no Team section.
-10. Click "Earn $1,000,000 (testing)" (this counts as earned money). A "Team" section appears under the tasks with IT Support and Cybersecurity, both faded and "(not hired)".
+10. Click "Add $1,000,000 (testing)" (this counts as earned money). A "Team" section appears under the tasks with IT Support and Cybersecurity, both faded and "(not hired)".
 11. The buttons say "Hire IT Support $25,000" and "Hire Cybersecurity $50,000". They are grey if you can't afford them.
 12. IT Support says "Server outages last 30s (max 30s)". Cybersecurity says "Hacker breach timer: 30s".
 13. Hire IT Support. The row is no longer faded, it shows "IT Support  Lv 1", the teal-shirt character, a "Level Up $5,750" button, and "Server outages last 25.5s".
-14. Hire Cybersecurity: black hoodie with green details, "Level Up $11,500", "Hacker breach timer: 33s, win = x1.5 for 60s".
+14. Hire Cybersecurity: black hoodie with green details, "Level Up $11,500", "Hacker breach timer: 33s, win = x5 for 60s".
 15. Level IT Support up to 5: outages last 13.31s. Level 10: 5.91s.
 16. Keep leveling to 15. The name says "Lv 15 MAX", the button says MAX and is grey, outages last 3s.
 17. Click Save and reload. Both team members are still hired at the same levels.
@@ -150,8 +156,8 @@ Start this section with a fresh game: click Reset and press OK.
 26. With Cybersecurity hired, click "Start breach (testing)". A popup opens right away: "HACKER BREACH!", a hacker with green eyes typing, a math problem, a text box, Submit, "Problems left: 3", a bar and "Time left: 33 s".
 27. Type a wrong answer and press Enter. It says "Wrong! -3 seconds", the time drops by 3, there is a new problem, and Problems left is still 3.
 28. Answer 3 problems correctly (use both Enter and the Submit button). After each one it says "Correct!" and Problems left goes down.
-29. After the third: the popup closes and "Hacker beaten!" appears. A "Security Boost: payouts x1.5" bar shows with "Time left: 60 s", and payouts in the rows are 1.5 times bigger.
-30. During an Investor Meeting boost too, payouts are x2 x 1.5 = x3 (Fix a Bug level 1 with no investors: $30).
+29. After the third: the popup closes and "Hacker beaten!" appears. A "Security Boost x5" bar shows with "Time left: 60s", and payouts in the rows are 5 times bigger.
+30. During an Investor Meeting boost too, payouts are x2 x 5 = x10.
 31. Without Cybersecurity hired, the timer starts at 30 s, and winning gives no boost.
 32. The problems are always whole numbers: two 2-digit numbers added, a subtraction with a positive answer, a 1-digit times a 2-digit number, or a division that comes out even.
 
@@ -162,3 +168,65 @@ Start this section with a fresh game: click Reset and press OK.
 36. Start another breach, then refresh the page (F5) before it ends. The "infiltrated" popup appears right away; refreshing doesn't escape. Refresh again: it is still there until you click Start Over.
 37. Breaches only come from "Start random event now" once you have earned $100,000 in total, and about 1 in 5 events is a breach.
 38. Close the game for a few minutes and come back: no event happened while you were away (only the welcome back money).
+
+## Layer 6: countdowns, easier problems, x5 boost, office upgrades, achievement rewards
+
+Start this section with a fresh game: click Reset and press OK.
+
+### Countdown text matches the bar
+1. Before clicking, Fix a Bug shows "10.00s" to the right of its bar (its full time).
+2. Click it. The text counts down 9.99, 9.98 ... smoothly with two decimals while the bar fills. When the bar is half full, the text says about 5.00s. It reaches 0.00s exactly when the bar is full and you get paid.
+3. Unlock Build a Feature (use "Add $10,000 (testing)") and click it. It shows whole seconds while 10 or more are left: 30s, 29s, 28s ... then switches to two decimals: 9.99s, 9.98s ... 0.00s. It never shows 0 before it's done.
+4. Level Fix a Bug to 9 and start it. While it runs, level it to 10. The text jumps down and counts faster (the task now takes 4.61s), and the bar jumps with it. The two always agree.
+5. The outage banner, breach popup, Investor Meeting offer, x2 bar and x5 bar all show "Time left: 25s" style text with the same rule (whole seconds above 10, two decimals below), and their bars shrink in step with the text.
+
+### Easier problems
+6. Click "Add $1,000,000 (testing)", then "Start breach (testing)" a few times (answer or use "End breach"). Every problem is one of: a number 1-20 plus a number 1-20; a number 10-30 minus a number 1-9; two numbers 2-9 multiplied; or a times-table division like 56 / 7.
+7. A new problem is never the same as the one just before it (also after a wrong answer).
+
+### Winning a breach returns you to the game
+8. Hire Cybersecurity. Click "Start breach (testing)" and answer all 3 problems.
+9. The popup closes, "Hacker beaten!" shows for about 3 seconds and goes away by itself. Tasks keep running and the buttons work (try Level Up).
+10. Right after winning, press F5. The game loads normally, with NO "infiltrated" popup.
+11. Click "Start random event now (testing)". Events still happen after a breach.
+
+### Security Boost x5
+12. After winning with Cybersecurity hired, a yellow "Security Boost x5: all payouts x5" bar shows with "Time left: 60s" and shrinks.
+13. Every task row's "per run" amount is 5 times bigger while it's on, and goes back after 60 seconds.
+14. Without Cybersecurity hired, winning gives no boost.
+
+### Office Upgrades
+15. Reset. With less than $1,000 earned there is no Office Upgrades section. After earning $1,000 (or "Add $1,000,000"), it appears below the Team section with 8 cards: name, effect, and a "Buy $..." button that is grey if you can't afford it.
+16. Buy each one and check it (start from a fresh game plus "Add $1,000,000" a few times; write down the numbers before buying):
+    - Coffee Machine ($2,000): every task's "per run" goes up 10%.
+    - Second Monitor ($8,000): only Fix a Bug and Build a Feature go up 25%.
+    - Standing Desks ($25,000): every task's idle time is 5% shorter (Fix a Bug 10.00s -> 9.50s).
+    - Snack Bar ($60,000): the offline cap is 12 hours. Test with the console line from Layer 3 step 24: the welcome popup says "12 hours or more".
+    - Ergonomic Chairs ($150,000): only Design a Screen and Test a Release go up 25%.
+    - Server Rack ($400,000): IT Support's row says outages last 22.5s without IT (or 19.13s with IT level 1). "Start outage (testing)" shows that time.
+    - Security Cameras ($800,000): Cybersecurity's row says the breach timer is 10 seconds longer, and a breach starts with 10 more seconds.
+    - Corner Office ($3,000,000): every task's "per run" goes up 50%.
+17. After buying, the card has a green border and its button says "Owned" (grey). A small colored square for it appears in the "Upgrades:" row under the top bar. Hover over a square to see its name.
+18. Save and reload. The upgrades are still owned.
+
+### Achievement rewards
+19. On a fresh game, finish Fix a Bug once. A message says "Achievement unlocked: First Paycheck (+1% payouts)" for about 3 seconds.
+20. Open Achievements. At the top: "Achievement bonus: +1% payouts". All 13 achievements are listed with what you have to do and the reward. Earned ones are green with [X], the others grey with [ ].
+21. Open Stats. It shows the same "Achievement bonus" line plus the usual numbers.
+22. Check the new ones: Millionaire ($1,000,000 earned in total), Level 50, Tech Support (hire IT Support), Locked Down (hire Cybersecurity), Hacker Beaten (win a breach), Office Upgrader (4 upgrades), Dream Office (all 8).
+23. With every achievement the bonus is +40% (the most it can be).
+
+### Upgrades are lost, achievements are kept
+24. Buy a few upgrades, then "Start breach (testing)" and "Fail breach (testing)". The "The start up was infiltrated :(" popup shows. Click Start Over.
+25. Money is $0, tasks and team are reset, no upgrades are owned (the "Upgrades:" row is gone and all cards say Buy). Achievements, the achievement bonus, investor points and Stats are the same as before.
+26. Do the same with Pivot: upgrades are lost, achievements and investors are kept.
+
+### Old saves
+27. An old save (from before this version) loads without errors. It starts with no upgrades, the team not hired, and gets any achievements it already qualifies for (for example First Hire if a character was hired) when it loads.
+
+### Testing buttons (all in the TESTING ONLY block at the bottom)
+28. "Add $1,000,000 (testing)": money and total earned both go up by $1,000,000 (check Stats). Millionaire unlocks.
+29. "Start outage (testing)", then "End outage (testing)": the outage ends right away and task bars continue from where they stopped. "End outage" with no outage does nothing.
+30. "Start breach (testing)", then scroll down and click "End breach (testing)" (the testing buttons stay clickable above the breach popup): it counts as a win (popup closes, Hacker Beaten, x5 boost if Cybersecurity is hired). With no breach it does nothing.
+31. "Start breach (testing)", then "Fail breach (testing)": the "infiltrated" popup shows. Start Over resets the run. With no breach it does nothing.
+32. "Add $10,000", "Start random event now", "Start outage" and "Start breach" still work as before.

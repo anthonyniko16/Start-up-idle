@@ -168,7 +168,8 @@ button:disabled {
   user-select: none;
 }
 
-#team-section h2 {
+#team-section h2,
+#perk-section h2 {
   font-size: 14px;
   color: #f9c74f;
 }
@@ -198,11 +199,26 @@ button:disabled {
   margin-bottom: 8px;
 }
 
+/* The progress bar and the countdown text sit on one line */
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.task-time {
+  width: 64px;
+  text-align: right;
+  font-size: 10px;
+  color: #f9c74f;
+}
+
 .progress-outer {
+  flex-grow: 1;
   height: 16px;
   background-color: #1b1b2f;
   border: 2px solid #4a4a7a;
-  margin-bottom: 8px;
 }
 
 .progress-inner {
@@ -265,6 +281,13 @@ button:disabled {
   height: 100%;
   background-color: rgba(0, 0, 0, 0.7);
   overflow-y: auto;
+  z-index: 200;
+}
+
+/* The breach popups sit under the testing buttons (z-index 100) so they can be tested */
+#breach-popup,
+#lost-popup {
+  z-index: 50;
 }
 
 .popup-box {
@@ -289,6 +312,65 @@ button:disabled {
 
 .not-done {
   color: #77779a;
+}
+
+/* ---------- Office Upgrades ---------- */
+
+#perk-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.perk-card {
+  width: 190px;
+  padding: 10px;
+  background-color: #2a2a4a;
+  border: 4px solid #4a4a7a;
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.perk-card.owned {
+  border-color: #90be6d;
+}
+
+.perk-name {
+  color: #f9c74f;
+  margin-bottom: 6px;
+}
+
+.perk-effect {
+  min-height: 48px;
+  margin-bottom: 8px;
+  color: #b8b8d1;
+}
+
+.perk-card button {
+  width: 100%;
+}
+
+#owned-row {
+  margin-bottom: 16px;
+  font-size: 10px;
+}
+
+#owned-perks {
+  display: inline-flex;
+  gap: 6px;
+  vertical-align: middle;
+}
+
+.owned-square {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #1b1b2f;
+  vertical-align: middle;
+}
+
+.bonus-line {
+  color: #f9c74f;
 }
 
 /* ---------- Hacker breach ---------- */
@@ -324,12 +406,17 @@ button:disabled {
   border-color: #39ff14;
 }
 
+/* TESTING ONLY: z-index puts the testing buttons above the breach popups, so "End breach" and
+   "Fail breach" can still be clicked while the breach popup is open (scroll down to them) */
 #test-area {
+  position: relative;
+  z-index: 100;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 16px;
   padding: 8px;
+  background-color: #1b1b2f;
   border: 2px dashed #f94144;
 }
 

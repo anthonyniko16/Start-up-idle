@@ -65,3 +65,26 @@ var teamList = [
 var teamUnlockEarned = 10000;
 var outageUnlockEarned = 5000;
 var breachUnlockEarned = 100000;
+
+// Beating a hacker with Cybersecurity hired multiplies all payouts by this for 60 seconds
+var securityBoostMultiplier = 5;
+
+// Office Upgrades: one-time purchases. "value" is the number the effect uses.
+// The id is what gets saved, so don't change an id once people have saves.
+var perkList = [
+  { id: "coffee", name: "Coffee Machine", cost: 2000, effect: "All payouts +10%", value: 1.10, color: "#8b5a2b" },
+  { id: "monitor", name: "Second Monitor", cost: 8000, effect: "Fix a Bug and Build a Feature payouts +25%", value: 1.25, color: "#4d96ff" },
+  { id: "desks", name: "Standing Desks", cost: 25000, effect: "All task times 5% shorter", value: 0.95, color: "#9c6b3c" },
+  { id: "snacks", name: "Snack Bar", cost: 60000, effect: "Offline earnings cap 12 hours (instead of 8)", value: 12, color: "#f8961e" },
+  { id: "chairs", name: "Ergonomic Chairs", cost: 150000, effect: "Design a Screen and Test a Release payouts +25%", value: 1.25, color: "#9d4edd" },
+  { id: "rack", name: "Server Rack", cost: 400000, effect: "Server Outages 25% shorter", value: 0.75, color: "#2ec4b6" },
+  { id: "cameras", name: "Security Cameras", cost: 800000, effect: "Hacker Breach timer +10 seconds", value: 10, color: "#39ff14" },
+  { id: "corner", name: "Corner Office", cost: 3000000, effect: "All payouts +50%", value: 1.50, color: "#f9c74f" }
+];
+
+// Which tasks (by number in taskList) the task-specific upgrades boost
+var monitorTasks = [0, 1];
+var chairsTasks = [2, 3];
+
+// How much money must be earned in total before the Office Upgrades show up
+var perksUnlockEarned = 1000;
