@@ -2,6 +2,11 @@
 
 Open index.html in a browser (double-click it). Follow the steps in order and check that what happens matches. If a step fails, write down the step number and what happened instead.
 
+## Before you start: did everything load?
+
+1. Open index.html. If a red box at the top says a file did not load, the game won't run. Put the named file in the same folder as index.html with exactly that name.
+2. Press F12 and open the Console tab. While the DEBUG lines are still in the code, you should see "DEBUG startGame: game loaded and the 100 ms tick timer is running" and no red errors.
+
 ## Layer 1: one task
 
 1. Open index.html. The top bar says "Start Up" and money shows $0.

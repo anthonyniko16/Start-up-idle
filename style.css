@@ -38,6 +38,16 @@ button:disabled {
   transform: none;
 }
 
+#error-box {
+  display: none;
+  padding: 12px;
+  margin-bottom: 16px;
+  line-height: 20px;
+  background-color: #f94144;
+  color: #ffffff;
+  border: 4px solid #ffffff;
+}
+
 /* ---------- Top bar ---------- */
 
 #top-bar {

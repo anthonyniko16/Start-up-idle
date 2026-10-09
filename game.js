@@ -8,6 +8,9 @@ var achievementList = [
   { id: "fullyAutomated", name: "Fully Automated", description: "Hire all five characters" }
 ];
 
+// DEBUG: counts game ticks so the console log only prints once a second
+var tickCount = 0;
+
 // Remembers which sprite each row is showing, so it is only redrawn when it changes
 var lastSprite = [];
 
@@ -117,7 +120,10 @@ function clickTask(i) {
   if (task.unlocked && !task.running) {
     task.running = true;
     task.startTime = Date.now();
+    console.log("DEBUG clickTask: " + taskList[i].name + " started, running = " + task.running + ", startTime = " + task.startTime);
     updateScreen();
+  } else {
+    console.log("DEBUG clickTask: " + taskList[i].name + " not started (unlocked = " + task.unlocked + ", running = " + task.running + ")");
   }
 }
 
@@ -179,6 +185,9 @@ function checkTask(i) {
   }
   var time = getTaskTime(i);
   var secondsPassed = (Date.now() - task.startTime) / 1000;
+  if (tickCount % 10 == 0) {
+    console.log("DEBUG tick: " + taskList[i].name + " running, " + secondsPassed.toFixed(1) + " of " + time + " seconds");
+  }
   if (secondsPassed < time) {
     return;
   }
@@ -187,10 +196,12 @@ function checkTask(i) {
     earnMoney(getPayout(i) * runs);
     gameState.tasksCompleted = gameState.tasksCompleted + runs;
     task.startTime = task.startTime + runs * time * 1000;
+    console.log("DEBUG payout: " + taskList[i].name + " paid " + formatMoney(getPayout(i) * runs) + " for " + runs + " run(s), restarting by itself");
   } else {
     earnMoney(getPayout(i));
     gameState.tasksCompleted = gameState.tasksCompleted + 1;
     task.running = false;
+    console.log("DEBUG payout: " + taskList[i].name + " paid " + formatMoney(getPayout(i)) + ", stopped and waiting for a click");
   }
 }
 
@@ -230,6 +241,7 @@ function checkAchievements() {
 
 // Runs 10 times a second: checks every task and achievement, then redraws the screen
 function gameTick() {
+  tickCount = tickCount + 1;
   for (var i = 0; i < taskList.length; i++) {
     checkTask(i);
   }
@@ -490,14 +502,40 @@ function updateScreen() {
 
 // ---------- Starting the game ----------
 
+// Checks that the other script files loaded. If one is missing, shows a warning on the page.
+function checkFilesLoaded() {
+  var missing = "";
+  if (typeof taskList == "undefined") {
+    missing = missing + " tasks.js";
+  }
+  if (typeof drawSprite == "undefined") {
+    missing = missing + " sprites.js";
+  }
+  if (typeof loadGame == "undefined") {
+    missing = missing + " save.js";
+  }
+  if (missing == "") {
+    return true;
+  }
+  var errorBox = document.getElementById("error-box");
+  errorBox.textContent = "The game can't start because these files did not load:" + missing +
+    ". Check that they are in the same folder as index.html and that the names match the script tags.";
+  errorBox.style.display = "block";
+  return false;
+}
+
 // Loads the save, builds the page and starts the timers
 function startGame() {
+  if (!checkFilesLoaded()) {
+    return;
+  }
   loadGame();
   buildTaskRows();
-  updateScreen();
   setInterval(gameTick, 100);
   setInterval(saveGame, 10000);
   window.onbeforeunload = saveGame;
+  console.log("DEBUG startGame: game loaded and the 100 ms tick timer is running");
+  updateScreen();
 }
 
 startGame();

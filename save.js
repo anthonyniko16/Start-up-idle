@@ -61,6 +61,25 @@ function fixMissingData() {
     if (gameState.tasks[i] === undefined) {
       gameState.tasks.push(newGame.tasks[i]);
     }
+    fixTaskData(gameState.tasks[i]);
+  }
+  if (typeof gameState.money != "number" || isNaN(gameState.money)) {
+    gameState.money = 0;
+  }
+  gameState.tasks[0].unlocked = true;
+}
+
+// Repairs one task from a save so a bad value can't leave it stuck
+function fixTaskData(task) {
+  if (typeof task.level != "number" || isNaN(task.level) || task.level < 1) {
+    task.level = 1;
+  }
+  task.unlocked = task.unlocked == true;
+  task.hired = task.hired == true;
+  task.running = task.running == true;
+  if (typeof task.startTime != "number" || isNaN(task.startTime)) {
+    // a running task with no real start time starts its run over now
+    task.startTime = Date.now();
   }
 }
 
