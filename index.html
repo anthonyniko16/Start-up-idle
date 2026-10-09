@@ -11,21 +11,27 @@
   <div id="top-bar">
     <h1>Start Up</h1>
     <div id="money-display">$0</div>
+    <div id="investor-display">Investors: 0</div>
   </div>
 
-  <div id="task-list">
-    <div class="task-row ready" id="task-row">
-      <div class="character-box"></div>
-      <div class="task-info">
-        <div class="task-name">Fix a Bug</div>
-        <div class="progress-outer">
-          <div class="progress-inner" id="progress-bar"></div>
-        </div>
-        <div class="task-status" id="task-status">Click to start</div>
-      </div>
-    </div>
+  <!-- The task rows are added here by buildTaskRows() in game.js -->
+  <div id="task-list"></div>
+
+  <div id="bottom-bar">
+    <button onclick="clickSave()">Save</button>
+    <button onclick="resetGame()">Reset</button>
   </div>
 
+  <div id="message"></div>
+
+  <!-- ===== TESTING ONLY: delete this whole block before turning in ===== -->
+  <div id="test-area">
+    <button onclick="gameState.money = gameState.money + 10000; updateScreen();">Add $10,000 (testing)</button>
+  </div>
+  <!-- ===== END OF TESTING ONLY BLOCK ===== -->
+
+  <script src="tasks.js"></script>
+  <script src="save.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
