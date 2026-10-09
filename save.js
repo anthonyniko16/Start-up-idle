@@ -15,7 +15,9 @@ function makeNewGame() {
     tasksCompleted: 0,
     runEarned: 0,
     soundOn: true,
+    breachActive: false,
     tasks: [],
+    team: [],
     achievements: {},
     investors: 0,
     lastSaved: Date.now()
@@ -24,6 +26,9 @@ function makeNewGame() {
     newGame.tasks.push({ level: 1, unlocked: false, hired: false, running: false, startTime: 0 });
   }
   newGame.tasks[0].unlocked = true;
+  for (var t = 0; t < teamList.length; t++) {
+    newGame.team.push({ hired: false, level: 0 });
+  }
   return newGame;
 }
 
@@ -48,7 +53,10 @@ function loadGame() {
     return;
   }
   fixMissingData();
-  applyOfflineProgress();
+  // if a hacker breach was going on, the player loses (see startGame), so no offline money
+  if (!gameState.breachActive) {
+    applyOfflineProgress();
+  }
 }
 
 // Fills in anything an older save is missing (for example after adding a new feature)
@@ -65,6 +73,16 @@ function fixMissingData() {
     }
     fixTaskData(gameState.tasks[i]);
   }
+  for (var t = 0; t < teamList.length; t++) {
+    if (gameState.team[t] === undefined) {
+      gameState.team.push(newGame.team[t]);
+    }
+    gameState.team[t].hired = gameState.team[t].hired == true;
+    if (typeof gameState.team[t].level != "number" || isNaN(gameState.team[t].level)) {
+      gameState.team[t].level = 0;
+    }
+  }
+  gameState.breachActive = gameState.breachActive == true;
   if (typeof gameState.money != "number" || isNaN(gameState.money)) {
     gameState.money = 0;
   }

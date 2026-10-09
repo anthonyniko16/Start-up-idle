@@ -25,9 +25,10 @@ button {
   cursor: pointer;
 }
 
+/* Pressed buttons only lose their shadow. They used to move 3px, which made
+   clicks near the edge miss the button (see dev-notes.md). */
 button:active {
   box-shadow: none;
-  transform: translate(3px, 3px);
 }
 
 button:disabled {
@@ -72,14 +73,13 @@ button:disabled {
 }
 
 #pivot-button {
-  display: none;
   background-color: #c77dff;
 }
 
 /* ---------- Event banner ---------- */
 
-#event-banner {
-  display: none;
+#event-banner,
+.boost {
   padding: 12px;
   margin-bottom: 16px;
   line-height: 20px;
@@ -97,8 +97,30 @@ button:disabled {
 }
 
 #event-button {
-  margin-left: 12px;
+  margin: 8px 0;
   background-color: #ffffff;
+}
+
+.boost {
+  background-color: #f9c74f;
+}
+
+/* Countdown bars that shrink as time runs out */
+.timer-outer {
+  height: 12px;
+  margin: 8px 0;
+  background-color: #1b1b2f;
+  border: 2px solid #1b1b2f;
+}
+
+.timer-inner {
+  height: 100%;
+  width: 100%;
+  background-color: #ffffff;
+}
+
+.timer-inner.danger {
+  background-color: #f94144;
 }
 
 /* ---------- Task rows ---------- */
@@ -126,17 +148,29 @@ button:disabled {
   border-color: #f94144;
 }
 
-.task-row.locked .work-area {
+.task-row.locked .work-area,
+.task-row.locked .team-area {
   opacity: 0.4;
 }
 
-.work-area {
+.work-area,
+.team-area {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-grow: 1;
   min-width: 240px;
+}
+
+/* user-select: none stops fast clicking from highlighting the text */
+.work-area {
   cursor: pointer;
+  user-select: none;
+}
+
+#team-section h2 {
+  font-size: 14px;
+  color: #f9c74f;
 }
 
 .task-row.paused {
@@ -230,6 +264,7 @@ button:disabled {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.7);
+  overflow-y: auto;
 }
 
 .popup-box {
@@ -254,6 +289,39 @@ button:disabled {
 
 .not-done {
   color: #77779a;
+}
+
+/* ---------- Hacker breach ---------- */
+
+.breach-box {
+  text-align: center;
+  border-color: #39ff14;
+}
+
+.breach-box .character {
+  background-color: #0b0b0b;
+}
+
+#breach-problem {
+  font-size: 18px;
+  color: #39ff14;
+}
+
+#breach-answer {
+  font-family: "Press Start 2P", "Courier New", monospace;
+  font-size: 14px;
+  width: 120px;
+  padding: 8px;
+  margin-right: 8px;
+}
+
+#breach-feedback {
+  min-height: 20px;
+  color: #f9c74f;
+}
+
+.breach-box .timer-outer {
+  border-color: #39ff14;
 }
 
 #test-area {

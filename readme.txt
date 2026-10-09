@@ -10,16 +10,26 @@ HOW TO RUN
 HOW TO PLAY
   Click a task (the left part of its row) to start it. When the bar fills
   up you get paid. Use the money to unlock new tasks and level them up.
-  Leveling up makes a task pay more, and at levels 10, 25, 50 and 100 it
-  also gets twice as fast (never faster than 1 second).
+  Leveling up makes a task pay more. Every 5 levels a task gets 4% faster,
+  and at levels 10, 25, 50 and 100 it gets twice as fast (never faster than
+  1 second).
   Hire a character for a task and they will run it for you, even while the
   game is closed (up to 8 hours of offline earnings).
   Stats and Achievements are at the bottom of the page.
   Once you have earned $1,000,000 since your last pivot, you can Pivot: you
   start over, but get investor points that give +10% payouts each.
-  Every 1 to 2 minutes a random event happens: an Investor Meeting (click it
-  for double payouts for 30 seconds) or a Server Outage (tasks pause until
-  you click Fix It, or for 10 seconds).
+  Every 1 to 2 minutes a random event happens:
+    - Investor Meeting: click it within 15 seconds for double payouts for
+      30 seconds.
+    - Server Outage (after $5,000 earned): all tasks pause for up to 30
+      seconds. Hire and level IT Support to make outages shorter.
+    - Hacker Breach (after $100,000 earned, rarer): answer 3 math problems
+      before the timer runs out. Cybersecurity gives more time and a x1.5
+      payout boost for 60 seconds when you win. If you lose, you start over
+      (you keep investors, achievements and stats). Refreshing the page
+      during a breach counts as losing.
+  The Team section (IT Support and Cybersecurity) appears after $10,000
+  earned. Both can be leveled up to 15.
   The Sound button at the bottom turns the beeps on and off.
 
 FILES
@@ -28,7 +38,8 @@ FILES
   style.css    Colors, layout and the pixel look.
   tasks.js     The list of tasks and all their numbers (time, payout,
                unlock cost, level cost base, hire cost). Change numbers here
-               to tune the game. Also the speed milestone levels.
+               to tune the game. Also the speed-up rules, the team (IT
+               Support and Cybersecurity) and when events unlock.
   sprites.js   The pixel art. Each character is a 16x16 grid of letters,
                each letter is a color. Also the function that draws a
                sprite onto a canvas.
@@ -36,9 +47,9 @@ FILES
                new game, saving and loading with localStorage, offline
                progress, and Reset.
   game.js      The game itself: formulas, clicking tasks, buying and hiring,
-               pivoting, the game loop that pays the player, random events,
-               sound, achievements, the stats and achievements popups, and
-               drawing the screen.
+               the team, pivoting, the game loop that pays the player, random
+               events and the hacker breach, sound, achievements, the stats
+               and achievements popups, and drawing the screen.
   readme.txt   This file.
   dev-notes.md A log of problems and design changes while building the game.
   test-checklist.md  Step-by-step manual tests for each layer.
@@ -55,5 +66,5 @@ RESETTING THE SAVE
 
 BEFORE TURNING IN
   Delete the block in index.html marked "TESTING ONLY". It holds the
-  "Add $10,000", "Earn $1,000,000" and "Start random event now" testing
-  buttons.
+  "Add $10,000", "Earn $1,000,000", "Start random event now",
+  "Start outage" and "Start breach" testing buttons.

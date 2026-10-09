@@ -15,17 +15,37 @@
     <h1>Start Up</h1>
     <div id="money-display">$0</div>
     <div id="investor-display">Investors: 0</div>
-    <button id="pivot-button" onclick="pivot()">Pivot</button>
+    <button id="pivot-button" onclick="pivot()" style="display: none">Pivot</button>
   </div>
 
-  <!-- Shows random events (Investor Meeting, Server Outage) and the x2 boost -->
-  <div id="event-banner">
-    <span id="event-text"></span>
-    <button id="event-button" onclick="clickEventButton()">OK</button>
+  <!-- Shows an Investor Meeting offer or a Server Outage, with a countdown bar -->
+  <div id="event-banner" style="display: none">
+    <div id="event-text"></div>
+    <button id="event-button" onclick="clickEventButton()">Take Meeting</button>
+    <div class="timer-outer"><div class="timer-inner" id="event-timer"></div></div>
+    <div id="event-time-text"></div>
+  </div>
+
+  <!-- Boosts that are active right now, each with a countdown bar -->
+  <div id="meeting-boost" class="boost" style="display: none">
+    <div>Investor Meeting: payouts x2</div>
+    <div class="timer-outer"><div class="timer-inner" id="meeting-timer"></div></div>
+    <div id="meeting-time-text"></div>
+  </div>
+  <div id="security-boost" class="boost" style="display: none">
+    <div>Security Boost: payouts x1.5</div>
+    <div class="timer-outer"><div class="timer-inner" id="security-timer"></div></div>
+    <div id="security-time-text"></div>
   </div>
 
   <!-- The task rows are added here by buildTaskRows() in game.js -->
   <div id="task-list"></div>
+
+  <!-- IT Support and Cybersecurity. Rows are added by buildTeamRows() in game.js. -->
+  <div id="team-section" style="display: none">
+    <h2>Team</h2>
+    <div id="team-list"></div>
+  </div>
 
   <div id="bottom-bar">
     <button onclick="showStats()">Stats</button>
@@ -56,11 +76,39 @@
     </div>
   </div>
 
+  <!-- Hacker breach: answer 3 math problems before the timer runs out. It can't be closed. -->
+  <div id="breach-popup" class="popup">
+    <div class="popup-box breach-box">
+      <h2>HACKER BREACH!</h2>
+      <canvas id="hacker-canvas" class="character" width="16" height="16"></canvas>
+      <p>Answer 3 math problems before time runs out!</p>
+      <p id="breach-problem"></p>
+      <input type="text" id="breach-answer" autocomplete="off" onkeydown="if (event.key == 'Enter') { submitBreachAnswer(); }">
+      <button onclick="submitBreachAnswer()">Submit</button>
+      <p id="breach-feedback"></p>
+      <p id="breach-left"></p>
+      <div class="timer-outer"><div class="timer-inner" id="breach-timer"></div></div>
+      <p id="breach-time-text"></p>
+    </div>
+  </div>
+
+  <!-- Shown when the player loses a hacker breach -->
+  <div id="lost-popup" class="popup">
+    <div class="popup-box breach-box">
+      <h2>Breached!</h2>
+      <p>The start up was infiltrated :(</p>
+      <p>You lose your money, levels, unlocks and hires. Achievements, stats and investor points are kept.</p>
+      <button onclick="clickStartOver()">Start Over</button>
+    </div>
+  </div>
+
   <!-- ===== TESTING ONLY: delete this whole block before turning in ===== -->
   <div id="test-area">
     <button onclick="gameState.money = gameState.money + 10000; updateScreen();">Add $10,000 (testing)</button>
     <button onclick="earnMoney(1000000); updateScreen();">Earn $1,000,000 (testing)</button>
     <button onclick="nextEventTime = 0;">Start random event now (testing)</button>
+    <button onclick="startOutage();">Start outage (testing)</button>
+    <button onclick="startBreach();">Start breach (testing)</button>
   </div>
   <!-- ===== END OF TESTING ONLY BLOCK ===== -->
 

@@ -98,17 +98,67 @@ Start this section with a fresh game: click Reset and press OK.
 10. Reload the page. Investors are still 2.
 
 ### Random events
-11. Play for about 2 minutes without clicking the testing buttons. A colored banner should appear under the top bar sometime between 1 and 2 minutes after opening the page.
-12. Click "Start random event now (testing)" until you get a green "Investor Meeting!" banner with a countdown from 15 and a "Take Meeting" button.
-13. Click Take Meeting. The banner says "Payouts x2! 30s left" and counts down. Payouts in every row are doubled (Fix a Bug says $24 with 2 investors). After 30 seconds the banner goes away and the payouts go back.
+(The outage and the boost banner changed in Layer 5. See the Layer 5 section for outages.)
+11. Play for about 2 minutes without clicking the testing buttons. A colored banner should appear under the top bar sometime between 1 and 2 minutes after opening the page. (Before you have earned $5,000 in total, it is always an Investor Meeting.)
+12. Click "Start random event now (testing)" until you get a green "Investor Meeting!" banner with a "Take Meeting" button, a shrinking bar and "Time left: 15 s".
+13. Click Take Meeting. A yellow "Investor Meeting: payouts x2" bar appears with "Time left: 30 s" and shrinks. Payouts in every row are doubled (Fix a Bug says $24 with 2 investors). After 30 seconds the bar goes away and the payouts go back.
 14. Get another Investor Meeting and don't click it. After 15 seconds it disappears with the message "You missed the investor meeting."
-15. Start Fix a Bug, then click "Start random event now" until you get a red "Server Outage!" banner. The row border turns red, it says "Paused: server outage!", the bar stops moving, the character stops typing, and no money comes in.
-16. Click a task row during the outage. A message says the servers are down. The task doesn't start.
-17. Click Fix It. The banner disappears and the bar continues from where it stopped (it doesn't jump ahead).
-18. Get another outage and don't click Fix It. After 10 seconds the message "The servers are back up." appears and everything continues.
-19. With hired characters, during an outage their bars stop too, and they continue afterwards.
 
 ### Sound
-20. Click something on the page first (browsers block sound until you do). Finish a task: you hear a short high beep.
-21. Level up, unlock or hire: a middle beep. An event starting: a low, longer beep.
-22. Click "Sound: On". It changes to "Sound: Off" and there are no more beeps. Reload the page: it is still off. Click it again to turn sound back on.
+15. Click something on the page first (browsers block sound until you do). Finish a task: you hear a short high beep.
+16. Level up, unlock or hire: a middle beep. An event starting: a low, longer beep.
+17. Click "Sound: On". It changes to "Sound: Off" and there are no more beeps. Reload the page: it is still off. Click it again to turn sound back on.
+
+## Layer 5: click fix, faster levels, team, outages, hacker breach
+
+Start this section with a fresh game: click Reset and press OK.
+
+### Click fix
+1. Hover over the Level Up button, press the mouse down on its very top-left corner and let go. The level goes up (before the fix, the button moved away under the mouse and the click was lost).
+2. Press any button. It loses its shadow but does not move.
+3. Click Fix a Bug many times quickly. The first click starts it, and the text in the row doesn't get highlighted blue.
+4. When it finishes, click once right away. It starts again on the first click.
+
+### 4% shorter every 5 levels
+5. Use "Add $10,000 (testing)". Fix a Bug at level 4 says "every 10s".
+6. Level 5: "every 9.6s". Level 9: still 9.6s.
+7. Level 10: "$100 every 4.61s" (10 x 0.5 x 0.96 x 0.96 = 4.608).
+8. Level 15: 4.42s. Level 25: 2.04s. Level 50 and up: 1s (the minimum).
+
+### Team: IT Support and Cybersecurity
+9. With less than $10,000 earned in total, there is no Team section.
+10. Click "Earn $1,000,000 (testing)" (this counts as earned money). A "Team" section appears under the tasks with IT Support and Cybersecurity, both faded and "(not hired)".
+11. The buttons say "Hire IT Support $25,000" and "Hire Cybersecurity $50,000". They are grey if you can't afford them.
+12. IT Support says "Server outages last 30s (max 30s)". Cybersecurity says "Hacker breach timer: 30s".
+13. Hire IT Support. The row is no longer faded, it shows "IT Support  Lv 1", the teal-shirt character, a "Level Up $5,750" button, and "Server outages last 25.5s".
+14. Hire Cybersecurity: black hoodie with green details, "Level Up $11,500", "Hacker breach timer: 33s, win = x1.5 for 60s".
+15. Level IT Support up to 5: outages last 13.31s. Level 10: 5.91s.
+16. Keep leveling to 15. The name says "Lv 15 MAX", the button says MAX and is grey, outages last 3s.
+17. Click Save and reload. Both team members are still hired at the same levels.
+
+### Server outage
+18. Reset, then click "Earn $1,000,000 (testing)" and hire IT Support. Start Fix a Bug.
+19. Click "Start outage (testing)". A red banner says "Server Outage! All tasks are paused." with a shrinking bar and "Time left: 26 s" (25.5s with IT level 1). There is no Fix It button.
+20. The Fix a Bug row turns red and says "Paused: server outage!". Its bar stops and the character stops typing. No money comes in.
+21. The IT Support row says "Fixing the servers!" and the IT character is typing.
+22. Click Fix a Bug during the outage. A message says the servers are down.
+23. When the time runs out: "The servers are back up." The Fix a Bug bar continues from where it stopped.
+24. Without IT Support hired, an outage lasts the full 30 seconds.
+25. On a fresh game (less than $5,000 earned), "Start random event now" never gives an outage, only meetings.
+
+### Hacker breach: winning
+26. With Cybersecurity hired, click "Start breach (testing)". A popup opens right away: "HACKER BREACH!", a hacker with green eyes typing, a math problem, a text box, Submit, "Problems left: 3", a bar and "Time left: 33 s".
+27. Type a wrong answer and press Enter. It says "Wrong! -3 seconds", the time drops by 3, there is a new problem, and Problems left is still 3.
+28. Answer 3 problems correctly (use both Enter and the Submit button). After each one it says "Correct!" and Problems left goes down.
+29. After the third: the popup closes and "Hacker beaten!" appears. A "Security Boost: payouts x1.5" bar shows with "Time left: 60 s", and payouts in the rows are 1.5 times bigger.
+30. During an Investor Meeting boost too, payouts are x2 x 1.5 = x3 (Fix a Bug level 1 with no investors: $30).
+31. Without Cybersecurity hired, the timer starts at 30 s, and winning gives no boost.
+32. The problems are always whole numbers: two 2-digit numbers added, a subtraction with a positive answer, a 1-digit times a 2-digit number, or a division that comes out even.
+
+### Hacker breach: losing
+33. Click "Start breach (testing)" and don't answer. Under 10 seconds the bar turns red.
+34. When it runs out, a popup says "The start up was infiltrated :(" with a Start Over button. You can't close it any other way.
+35. Click Start Over. Money is $0, only Fix a Bug is unlocked at level 1, nobody is hired, and IT Support and Cybersecurity are not hired. Investor points, achievements and Stats are the same as before.
+36. Start another breach, then refresh the page (F5) before it ends. The "infiltrated" popup appears right away; refreshing doesn't escape. Refresh again: it is still there until you click Start Over.
+37. Breaches only come from "Start random event now" once you have earned $100,000 in total, and about 1 in 5 events is a breach.
+38. Close the game for a few minutes and come back: no event happened while you were away (only the welcome back money).

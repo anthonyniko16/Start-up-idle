@@ -11,16 +11,19 @@ var palette = {
 };
 
 // Colors that are different for each character:
-// H = hair, T = shirt, S = skin,
+// H = hair, T = shirt, S = skin, G = hoodie strings (same as the shirt unless they stand out),
 // A = top of the head (hair, or the headset band),
 // B = headset ear cup and microphone ("" means see-through, so no headset)
 var characterColors = {
-  "Founder": { H: "#3b2a1a", A: "#3b2a1a", B: "", T: "#4d96ff" },
-  "Intern": { H: "#f9c74f", A: "#f9c74f", B: "", T: "#43aa8b" },
-  "Junior Dev": { H: "#7a4a2a", A: "#7a4a2a", B: "", T: "#f8961e", S: "#c68c5f" },
-  "Designer": { H: "#ff70a6", A: "#ff70a6", B: "", T: "#9d4edd" },
-  "QA Tester": { H: "#222222", A: "#222222", B: "", T: "#e63946", S: "#8d5a3b" },
-  "DevOps Engineer": { H: "#555555", A: "#e0e0e0", B: "#e0e0e0", T: "#22223b" }
+  "Founder": { H: "#3b2a1a", A: "#3b2a1a", B: "", T: "#4d96ff", G: "#4d96ff" },
+  "Intern": { H: "#f9c74f", A: "#f9c74f", B: "", T: "#43aa8b", G: "#43aa8b" },
+  "Junior Dev": { H: "#7a4a2a", A: "#7a4a2a", B: "", T: "#f8961e", G: "#f8961e", S: "#c68c5f" },
+  "Designer": { H: "#ff70a6", A: "#ff70a6", B: "", T: "#9d4edd", G: "#9d4edd" },
+  "QA Tester": { H: "#222222", A: "#222222", B: "", T: "#e63946", G: "#e63946", S: "#8d5a3b" },
+  "DevOps Engineer": { H: "#555555", A: "#e0e0e0", B: "#e0e0e0", T: "#22223b", G: "#22223b" },
+  "IT Support": { H: "#2b2b2b", A: "#2b2b2b", B: "", T: "#2ec4b6", G: "#2ec4b6", S: "#c68c5f" },
+  "Cybersecurity": { H: "#111111", A: "#111111", B: "", T: "#111111", G: "#39ff14", W: "#39ff14" },
+  "Hacker": { H: "#0b0b0b", A: "#0b0b0b", B: "", T: "#1a1a1a", G: "#1a1a1a", S: "#3a3a3a", E: "#39ff14", M: "#2a2a2a", W: "#39ff14" }
 };
 
 // The base person at a desk with a laptop. Frame 1 has the hands down on the keyboard.
@@ -33,8 +36,8 @@ var typingFrame1 = [
   "...BSSSSSSSS....",
   "....BSSMMSS.....",
   "......SSSS......",
-  "...TTTTTTTTTT...",
-  "..TTTTTTTTTTTT..",
+  "...TTTGTTGTTT...",
+  "..TTTTGTTGTTTT..",
   "..TTTLLLLLLTTT..",
   "..TTLLLWWLLLTT..",
   "..SSLLLLLLLLSS..",
@@ -53,8 +56,8 @@ var typingFrame2 = [
   "...BSSSSSSSS....",
   "....BSSMMSS.....",
   "......SSSS......",
-  "...TTTTTTTTTT...",
-  "..TTTTTTTTTTTT..",
+  "...TTTGTTGTTT...",
+  "..TTTTGTTGTTTT..",
   "..TTTLLLLLLTTT..",
   "..SSLLLWWLLLSS..",
   "..TTLLLLLLLLTT..",

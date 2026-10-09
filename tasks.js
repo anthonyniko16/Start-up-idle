@@ -50,3 +50,18 @@ var taskList = [
 
 // When a task reaches one of these levels, its time is cut in half
 var speedMilestones = [10, 25, 50, 100];
+
+// Every 5 levels (5, 10, 15...) a task's time is multiplied by this (0.96 = 4% shorter)
+var fiveLevelSpeedUp = 0.96;
+
+// The team members who help with events. They don't run a task.
+// Number 0 is IT Support (shorter outages), number 1 is Cybersecurity (hacker breaches).
+var teamList = [
+  { name: "IT Support", hireCost: 25000, levelCostBase: 5000, maxLevel: 15 },
+  { name: "Cybersecurity", hireCost: 50000, levelCostBase: 10000, maxLevel: 15 }
+];
+
+// How much money must be earned in total before these show up
+var teamUnlockEarned = 10000;
+var outageUnlockEarned = 5000;
+var breachUnlockEarned = 100000;

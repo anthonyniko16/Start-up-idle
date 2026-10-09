@@ -11,15 +11,29 @@ var achievementList = [
 // DEBUG: counts game ticks so the console log only prints once a second
 var tickCount = 0;
 
-// Remembers which sprite each row is showing, so it is only redrawn when it changes
-var lastSprite = [];
+// Remembers which sprite each canvas is showing, so it is only redrawn when it changes
+var lastSprite = {};
 
-// Random events. These are not saved, so a reload ends any event.
-var eventType = "";        // "", "meeting" or "outage"
-var eventEndTime = 0;      // when the meeting offer or the outage runs out
-var outageStartTime = 0;   // when the current outage started
-var boostEndTime = 0;      // payouts are doubled until this time
+// Random events. These are not saved, so a reload ends a meeting, an outage or a boost.
+var eventType = "";            // "", "meeting" or "outage"
+var eventStartTime = 0;        // when the current meeting offer or outage started
+var eventEndTime = 0;          // when the meeting offer or outage runs out
+var meetingBoostEndTime = 0;   // payouts are x2 until this time
+var securityBoostEndTime = 0;  // payouts are x1.5 until this time
 var nextEventTime = Date.now() + randomEventDelay();
+
+// Event lengths in seconds
+var meetingOfferSeconds = 15;
+var meetingBoostSeconds = 30;
+var outageMaxSeconds = 30;
+var breachBaseSeconds = 30;
+var securityBoostSeconds = 60;
+
+// The hacker breach. gameState.breachActive is saved so a reload can't escape it.
+var breachEndTime = 0;         // 0 means the breach timer is not running
+var breachTotalSeconds = 0;    // how long the timer was at the start (for the bar)
+var problemsLeft = 0;
+var problemAnswer = 0;
 
 // Used to play beeps. It is made the first time a sound plays.
 var audioContext = null;
@@ -27,27 +41,111 @@ var audioContext = null;
 // How much money earned in one run you need before you can pivot
 var pivotGoal = 1000000;
 
-// ---------- Numbers and formulas ----------
+// ---------- Small helpers for changing the page ----------
+// They only change the page if the value is different. Rewriting the same text
+// 10 times a second can make the browser lose clicks (see dev-notes.md).
 
-// How many seconds one run of a task takes (cut in half at each speed milestone, never under 1)
-function getTaskTime(i) {
-  var level = gameState.tasks[i].level;
-  var milestonesReached = 0;
-  for (var m = 0; m < speedMilestones.length; m++) {
-    if (level >= speedMilestones[m]) {
-      milestonesReached = milestonesReached + 1;
-    }
+// Sets the text of an element
+function setText(id, text) {
+  var element = document.getElementById(id);
+  if (element.textContent != text) {
+    element.textContent = text;
   }
-  return Math.max(1, taskList[i].time * Math.pow(0.5, milestonesReached));
 }
 
-// The payout multiplier: +10% for each investor point, and x2 during an investor meeting boost
-function getBonus() {
-  var bonus = 1 + 0.1 * gameState.investors;
-  if (Date.now() < boostEndTime) {
+// Sets the CSS class of an element
+function setClass(id, className) {
+  var element = document.getElementById(id);
+  if (element.className != className) {
+    element.className = className;
+  }
+}
+
+// Shows or hides an element
+function setShown(id, isShown) {
+  var element = document.getElementById(id);
+  var display = "none";
+  if (isShown) {
+    display = "block";
+  }
+  if (element.style.display != display) {
+    element.style.display = display;
+  }
+}
+
+// Greys out a button or makes it clickable
+function setDisabled(id, isDisabled) {
+  var element = document.getElementById(id);
+  if (element.disabled != isDisabled) {
+    element.disabled = isDisabled;
+  }
+}
+
+// Sets how full a bar is (0 to 100)
+function setBarWidth(id, percent) {
+  if (percent < 0) {
+    percent = 0;
+  }
+  if (percent > 100) {
+    percent = 100;
+  }
+  var element = document.getElementById(id);
+  var width = percent + "%";
+  if (element.style.width != width) {
+    element.style.width = width;
+  }
+}
+
+// Draws a character on a canvas, but only if it isn't already showing that frame
+function showSprite(canvasId, characterName, frameNumber) {
+  var spriteName = characterName + frameNumber;
+  if (lastSprite[canvasId] != spriteName) {
+    drawSprite(document.getElementById(canvasId), characterName, frameNumber);
+    lastSprite[canvasId] = spriteName;
+  }
+}
+
+// The typing frame (1 or 2) for a character that is working. It switches every 300 ms.
+function getTypingFrame() {
+  return Math.floor(Date.now() / 300) % 2 + 1;
+}
+
+// ---------- Numbers and formulas ----------
+
+// How many seconds one run of a task takes.
+// Cut in half at each speed milestone, 4% shorter every 5 levels, never under 1 second.
+function getTaskTime(i) {
+  var level = gameState.tasks[i].level;
+  var halvings = 0;
+  for (var m = 0; m < speedMilestones.length; m++) {
+    if (level >= speedMilestones[m]) {
+      halvings = halvings + 1;
+    }
+  }
+  var time = taskList[i].time * Math.pow(0.5, halvings) * Math.pow(fiveLevelSpeedUp, Math.floor(level / 5));
+  return Math.max(1, time);
+}
+
+// Turns seconds into text with at most 2 decimals, like 10s, 9.6s or 4.61s
+function formatSeconds(seconds) {
+  return Math.round(seconds * 100) / 100 + "s";
+}
+
+// The multiplier from events: x2 during an investor meeting boost, x1.5 during a security boost
+function getEventBonus() {
+  var bonus = 1;
+  if (Date.now() < meetingBoostEndTime) {
     bonus = bonus * 2;
   }
+  if (Date.now() < securityBoostEndTime) {
+    bonus = bonus * 1.5;
+  }
   return bonus;
+}
+
+// The payout multiplier: +10% for each investor point, times the event bonus
+function getBonus() {
+  return (1 + 0.1 * gameState.investors) * getEventBonus();
 }
 
 // How much one run of a task pays at its current level
@@ -66,6 +164,33 @@ function getLevelCost(i) {
   var level = gameState.tasks[i].level;
   // the + 0.001 stops a number like 114.99999 from being rounded down to 114
   return Math.floor(taskList[i].levelCostBase * Math.pow(1.15, level) + 0.001);
+}
+
+// A team member's level, or 0 if they are not hired (t is 0 for IT Support, 1 for Cybersecurity)
+function getTeamLevel(t) {
+  if (!gameState.team[t].hired) {
+    return 0;
+  }
+  return gameState.team[t].level;
+}
+
+// The cost to go from a team member's current level to the next level
+function getTeamLevelCost(t) {
+  return Math.floor(teamList[t].levelCostBase * Math.pow(1.15, gameState.team[t].level) + 0.001);
+}
+
+// How many seconds a server outage lasts (shorter with IT Support, never under 3)
+function getOutageSeconds() {
+  var itLevel = getTeamLevel(0);
+  if (itLevel == 0) {
+    return outageMaxSeconds;
+  }
+  return Math.max(3, outageMaxSeconds * Math.pow(0.85, itLevel));
+}
+
+// How many seconds the player gets to beat a hacker (3 more per Cybersecurity level)
+function getBreachSeconds() {
+  return breachBaseSeconds + 3 * getTeamLevel(1);
 }
 
 // Turns a number into money text like $1,234 or $1.2M
@@ -107,7 +232,7 @@ function countUnlocked() {
   return count;
 }
 
-// Counts how many characters have been hired
+// Counts how many task characters have been hired
 function countHired() {
   var count = 0;
   for (var i = 0; i < taskList.length; i++) {
@@ -142,7 +267,7 @@ function earnMoney(amount) {
 function clickTask(i) {
   var task = gameState.tasks[i];
   if (isOutage()) {
-    showMessage("The servers are down! Click Fix It first.");
+    showMessage("The servers are down! Tasks are paused.");
     return;
   }
   if (task.unlocked && !task.running) {
@@ -192,22 +317,54 @@ function hireTask(i) {
   }
 }
 
-// Starts over with investor points: money, levels, unlocks and hires reset,
-// but achievements, investors and stats are kept
+// Hires a team member (IT Support or Cybersecurity) at level 1
+function hireTeam(t) {
+  var cost = teamList[t].hireCost;
+  if (!gameState.team[t].hired && gameState.money >= cost) {
+    gameState.money = gameState.money - cost;
+    gameState.team[t].hired = true;
+    gameState.team[t].level = 1;
+    playSound("buy");
+    showMessage("You hired " + teamList[t].name + "!");
+    updateScreen();
+  }
+}
+
+// Buys one level for a team member (up to their max level)
+function levelUpTeam(t) {
+  var member = gameState.team[t];
+  var cost = getTeamLevelCost(t);
+  if (member.hired && member.level < teamList[t].maxLevel && gameState.money >= cost) {
+    gameState.money = gameState.money - cost;
+    member.level = member.level + 1;
+    playSound("buy");
+    updateScreen();
+  }
+}
+
+// Resets money, tasks and the team to the start. Achievements, investors and stats are kept.
+// Used by Pivot and by losing to a hacker.
+function startOverRun() {
+  var newGame = makeNewGame();
+  gameState.money = 0;
+  gameState.runEarned = 0;
+  gameState.tasks = newGame.tasks;
+  gameState.team = newGame.team;
+}
+
+// Starts over with investor points
 function pivot() {
   var points = getPivotPoints();
   if (points < 1) {
     return;
   }
   var question = "Pivot the company? You get " + points + " investor point(s) (+10% payouts each). " +
-    "Your money, levels, unlocks and hires go back to the start.";
+    "Your money, levels, unlocks and hires (including your team) go back to the start.";
   if (!confirm(question)) {
     return;
   }
   gameState.investors = gameState.investors + points;
-  gameState.money = 0;
-  gameState.runEarned = 0;
-  gameState.tasks = makeNewGame().tasks;
+  startOverRun();
   playSound("buy");
   showMessage("Pivoted! You now have " + gameState.investors + " investor points.");
   saveGame();
@@ -323,24 +480,44 @@ function isOutage() {
   return eventType == "outage";
 }
 
-// Starts an Investor Meeting or a Server Outage (50/50 chance)
+// Returns true while the hacker breach timer is running
+function isBreachRunning() {
+  return gameState.breachActive && breachEndTime > 0;
+}
+
+// Picks a random event. Outages and breaches only happen once enough money has been earned.
+// When all three can happen: breach 20%, outage 40%, meeting 40%.
 function startRandomEvent() {
-  var now = Date.now();
-  if (Math.random() < 0.5) {
-    eventType = "meeting";
-    eventEndTime = now + 15000;
+  var roll = Math.random();
+  if (gameState.totalEarned >= breachUnlockEarned && roll < 0.2) {
+    startBreach();
+  } else if (gameState.totalEarned >= outageUnlockEarned && roll < 0.6) {
+    startOutage();
   } else {
-    eventType = "outage";
-    outageStartTime = now;
-    eventEndTime = now + 10000;
+    startMeeting();
   }
-  nextEventTime = now + randomEventDelay();
+  nextEventTime = Date.now() + randomEventDelay();
+}
+
+// Starts an Investor Meeting offer (click it within 15 seconds)
+function startMeeting() {
+  eventType = "meeting";
+  eventStartTime = Date.now();
+  eventEndTime = eventStartTime + meetingOfferSeconds * 1000;
   playSound("event");
 }
 
-// Ends a server outage. Running tasks get the paused time back so they don't jump ahead.
+// Starts a Server Outage. All tasks pause until it ends.
+function startOutage() {
+  eventType = "outage";
+  eventStartTime = Date.now();
+  eventEndTime = eventStartTime + getOutageSeconds() * 1000;
+  playSound("event");
+}
+
+// Ends a server outage. Running tasks get the paused time back so they continue where they were.
 function endOutage() {
-  var pausedTime = Date.now() - outageStartTime;
+  var pausedTime = Date.now() - eventStartTime;
   for (var i = 0; i < taskList.length; i++) {
     if (gameState.tasks[i].running) {
       gameState.tasks[i].startTime = gameState.tasks[i].startTime + pausedTime;
@@ -352,8 +529,8 @@ function endOutage() {
 // Starts a new event when it's time, and ends events that ran out
 function checkEvents() {
   var now = Date.now();
-  // events only start while the player is looking at the page
-  if (eventType == "" && now >= nextEventTime && !document.hidden) {
+  // events only start while the player is looking at the page and no breach is going on
+  if (eventType == "" && !gameState.breachActive && now >= nextEventTime && !document.hidden) {
     startRandomEvent();
   }
   if (eventType == "meeting" && now >= eventEndTime) {
@@ -364,31 +541,153 @@ function checkEvents() {
     endOutage();
     showMessage("The servers are back up.");
   }
+  if (isBreachRunning() && now >= breachEndTime) {
+    loseBreach();
+  }
 }
 
-// Runs when the button on the event banner is clicked
+// Runs when the Take Meeting button is clicked
 function clickEventButton() {
   if (eventType == "meeting") {
     eventType = "";
-    boostEndTime = Date.now() + 30000;
+    meetingBoostEndTime = Date.now() + meetingBoostSeconds * 1000;
     playSound("buy");
     showMessage("The investors loved it! Payouts x2 for 30 seconds.");
-  } else if (eventType == "outage") {
-    endOutage();
-    playSound("buy");
-    showMessage("Fixed it! Back to work.");
+    updateScreen();
   }
-  updateScreen();
 }
 
-// Ends any event and boost (used by Reset)
+// Ends every event and boost (used by Reset)
 function clearEvents() {
   if (isOutage()) {
     endOutage();
   }
   eventType = "";
-  boostEndTime = 0;
+  meetingBoostEndTime = 0;
+  securityBoostEndTime = 0;
+  breachEndTime = 0;
   nextEventTime = Date.now() + randomEventDelay();
+  document.getElementById("breach-popup").style.display = "none";
+  document.getElementById("lost-popup").style.display = "none";
+}
+
+// ---------- Hacker breach ----------
+
+// Picks a random whole number from min to max (both included)
+function randomInt(min, max) {
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+// Makes a new random math problem, shows it, and remembers the answer
+function newProblem() {
+  var type = randomInt(1, 4);
+  var a = 0;
+  var b = 0;
+  var text = "";
+  if (type == 1) {
+    a = randomInt(10, 99);
+    b = randomInt(10, 99);
+    text = a + " + " + b;
+    problemAnswer = a + b;
+  } else if (type == 2) {
+    a = randomInt(30, 99);
+    b = randomInt(10, a - 1);
+    text = a + " - " + b;
+    problemAnswer = a - b;
+  } else if (type == 3) {
+    a = randomInt(3, 9);
+    b = randomInt(11, 25);
+    text = a + " x " + b;
+    problemAnswer = a * b;
+  } else {
+    // pick the answer first so the division always comes out even
+    b = randomInt(3, 9);
+    problemAnswer = randomInt(6, 20);
+    a = b * problemAnswer;
+    text = a + " / " + b;
+  }
+  setText("breach-problem", text + " = ?");
+  document.getElementById("breach-answer").value = "";
+}
+
+// Starts a hacker breach: opens the popup and starts the timer
+function startBreach() {
+  gameState.breachActive = true;
+  breachTotalSeconds = getBreachSeconds();
+  breachEndTime = Date.now() + breachTotalSeconds * 1000;
+  problemsLeft = 3;
+  newProblem();
+  setText("breach-feedback", "");
+  document.getElementById("breach-popup").style.display = "block";
+  document.getElementById("breach-answer").focus();
+  playSound("event");
+  // save right away so refreshing the page can't be used to escape
+  saveGame();
+  updateScreen();
+}
+
+// Checks the answer typed in the breach popup (Submit button or the Enter key)
+function submitBreachAnswer() {
+  if (!isBreachRunning()) {
+    return;
+  }
+  var input = document.getElementById("breach-answer");
+  var guess = parseInt(input.value, 10);
+  if (isNaN(guess)) {
+    setText("breach-feedback", "Type a number first.");
+    input.focus();
+    return;
+  }
+  if (guess == problemAnswer) {
+    problemsLeft = problemsLeft - 1;
+    if (problemsLeft == 0) {
+      winBreach();
+      return;
+    }
+    setText("breach-feedback", "Correct!");
+    playSound("buy");
+  } else {
+    breachEndTime = breachEndTime - 3000;
+    setText("breach-feedback", "Wrong! -3 seconds");
+    playSound("event");
+  }
+  newProblem();
+  input.focus();
+  updateScreen();
+}
+
+// The player answered all 3 problems in time
+function winBreach() {
+  gameState.breachActive = false;
+  breachEndTime = 0;
+  document.getElementById("breach-popup").style.display = "none";
+  showMessage("Hacker beaten!");
+  if (gameState.team[1].hired) {
+    securityBoostEndTime = Date.now() + securityBoostSeconds * 1000;
+    showMessage("Security Boost! Payouts x1.5 for 60 seconds.");
+  }
+  playSound("buy");
+  saveGame();
+  updateScreen();
+}
+
+// The timer ran out (or the page was reloaded during a breach): show the "infiltrated" popup.
+// gameState.breachActive stays true until the player clicks Start Over.
+function loseBreach() {
+  breachEndTime = 0;
+  document.getElementById("breach-popup").style.display = "none";
+  document.getElementById("lost-popup").style.display = "block";
+  playSound("event");
+}
+
+// Runs when Start Over is clicked after losing to a hacker
+function clickStartOver() {
+  startOverRun();
+  gameState.breachActive = false;
+  document.getElementById("lost-popup").style.display = "none";
+  saveGame();
+  showMessage("Starting over. Investors, achievements and stats were kept.");
+  updateScreen();
 }
 
 // ---------- Sound ----------
@@ -426,7 +725,7 @@ function playSound(name) {
   }
 }
 
-// ---------- Building the page ----------
+// ---------- Building the page (done once at the start) ----------
 
 // Makes a button with an id and a function to run when it is clicked
 function makeButton(id, whenClicked) {
@@ -444,23 +743,23 @@ function makeDiv(className, id) {
   return div;
 }
 
-// Makes the small 16 by 16 canvas that a character is drawn on
-function makeCharacterCanvas(i) {
+// Makes a small 16 by 16 canvas that a character is drawn on
+function makeCharacterCanvas(id) {
   var canvas = document.createElement("canvas");
   canvas.width = 16;
   canvas.height = 16;
   canvas.className = "character";
-  canvas.id = "character-" + i;
+  canvas.id = id;
   return canvas;
 }
 
-// Makes the clickable part of a row: character, name, progress bar and status
+// Makes the clickable part of a task row: character, name, progress bar and status
 function makeWorkArea(i) {
   var workArea = makeDiv("work-area", "work-" + i);
   workArea.onclick = function () {
     clickTask(i);
   };
-  workArea.appendChild(makeCharacterCanvas(i));
+  workArea.appendChild(makeCharacterCanvas("character-" + i));
 
   var info = makeDiv("task-info", "info-" + i);
   info.appendChild(makeDiv("task-name", "name-" + i));
@@ -472,7 +771,7 @@ function makeWorkArea(i) {
   return workArea;
 }
 
-// Makes the Unlock, Level Up and Hire buttons for a row
+// Makes the Unlock, Level Up and Hire buttons for a task row
 function makeButtonArea(i) {
   var buttonArea = makeDiv("task-buttons", "buttons-" + i);
   buttonArea.appendChild(makeButton("unlock-" + i, function () {
@@ -495,6 +794,36 @@ function buildTaskRows() {
     row.appendChild(makeWorkArea(i));
     row.appendChild(makeButtonArea(i));
     taskListDiv.appendChild(row);
+  }
+}
+
+// Creates one row of the Team section (IT Support or Cybersecurity)
+function makeTeamRow(t) {
+  var row = makeDiv("task-row", "team-row-" + t);
+  var infoArea = makeDiv("team-area", "team-area-" + t);
+  infoArea.appendChild(makeCharacterCanvas("team-character-" + t));
+  var info = makeDiv("task-info", "team-info-" + t);
+  info.appendChild(makeDiv("task-name", "team-name-" + t));
+  info.appendChild(makeDiv("task-status", "team-status-" + t));
+  infoArea.appendChild(info);
+  row.appendChild(infoArea);
+
+  var buttonArea = makeDiv("task-buttons", "team-buttons-" + t);
+  buttonArea.appendChild(makeButton("team-hire-" + t, function () {
+    hireTeam(t);
+  }));
+  buttonArea.appendChild(makeButton("team-level-" + t, function () {
+    levelUpTeam(t);
+  }));
+  row.appendChild(buttonArea);
+  return row;
+}
+
+// Creates the Team section rows, one for each member in tasks.js
+function buildTeamRows() {
+  var teamListDiv = document.getElementById("team-list");
+  for (var t = 0; t < teamList.length; t++) {
+    teamListDiv.appendChild(makeTeamRow(t));
   }
 }
 
@@ -554,6 +883,7 @@ function showStats() {
   addPanelLine("Tasks completed: " + gameState.tasksCompleted.toLocaleString("en-US"), "");
   addPanelLine("Characters hired: " + countHired() + " / " + taskList.length, "");
   addPanelLine("Highest level: " + getHighestLevel(), "");
+  addPanelLine("IT Support level: " + getTeamLevel(0) + ", Cybersecurity level: " + getTeamLevel(1), "");
   addPanelLine("Investor points: " + gameState.investors + " (payouts x" + (1 + 0.1 * gameState.investors).toFixed(1) + ")", "");
   addPanelLine("Earned since last pivot: " + formatMoney(gameState.runEarned), "");
 }
@@ -571,9 +901,9 @@ function showAchievements() {
   }
 }
 
-// ---------- Updating the page ----------
+// ---------- Updating the page (10 times a second) ----------
 
-// Draws the right character and animation frame for a row (only when it changed)
+// Draws the right character and animation frame for a task row
 function updateSprite(i) {
   var task = gameState.tasks[i];
   var characterName = "Founder";
@@ -582,144 +912,226 @@ function updateSprite(i) {
   }
   var frameNumber = 1;
   if (task.running && !isOutage()) {
-    // switches between frame 1 and 2 every 300 milliseconds
-    frameNumber = Math.floor(Date.now() / 300) % 2 + 1;
+    frameNumber = getTypingFrame();
   }
-  var spriteName = characterName + frameNumber;
-  if (lastSprite[i] != spriteName) {
-    drawSprite(document.getElementById("character-" + i), characterName, frameNumber);
-    lastSprite[i] = spriteName;
-  }
+  showSprite("character-" + i, characterName, frameNumber);
 }
 
 // Shows a row that has not been bought yet: greyed out with only an Unlock button
 function showLockedRow(i) {
   var cost = taskList[i].unlockCost;
-  document.getElementById("row-" + i).className = "task-row locked";
-  document.getElementById("name-" + i).textContent = taskList[i].name;
-  document.getElementById("status-" + i).textContent = "Locked";
-  document.getElementById("bar-outer-" + i).style.display = "none";
-
-  var unlockButton = document.getElementById("unlock-" + i);
-  unlockButton.style.display = "block";
-  unlockButton.textContent = "Unlock " + formatMoney(cost);
-  unlockButton.disabled = gameState.money < cost;
-  document.getElementById("level-" + i).style.display = "none";
-  document.getElementById("hire-" + i).style.display = "none";
+  setClass("row-" + i, "task-row locked");
+  setText("name-" + i, taskList[i].name);
+  setText("status-" + i, "Locked");
+  setShown("bar-outer-" + i, false);
+  setShown("unlock-" + i, true);
+  setText("unlock-" + i, "Unlock " + formatMoney(cost));
+  setDisabled("unlock-" + i, gameState.money < cost);
+  setShown("level-" + i, false);
+  setShown("hire-" + i, false);
 }
 
-// Sets the row's look (ready, working or auto), its status text and progress bar
+// Sets the row's look (ready, working, auto or paused), its status text and progress bar
 function showRowState(i) {
   var task = gameState.tasks[i];
   var time = getTaskTime(i);
-  var payText = formatMoney(getPayout(i)) + " every " + time + "s";
-  var row = document.getElementById("row-" + i);
-  var status = document.getElementById("status-" + i);
+  var payText = formatMoney(getPayout(i)) + " every " + formatSeconds(time);
 
   if (isOutage() && task.running) {
-    row.className = "task-row paused";
-    status.textContent = "Paused: server outage!";
+    setClass("row-" + i, "task-row paused");
+    setText("status-" + i, "Paused: server outage!");
   } else if (task.hired) {
-    row.className = "task-row auto";
-    status.textContent = "Auto (" + taskList[i].character + "): " + payText;
+    setClass("row-" + i, "task-row auto");
+    setText("status-" + i, "Auto (" + taskList[i].character + "): " + payText);
   } else if (task.running) {
-    row.className = "task-row working";
-    status.textContent = "Working... " + payText;
+    setClass("row-" + i, "task-row working");
+    setText("status-" + i, "Working... " + payText);
   } else {
-    row.className = "task-row ready";
-    status.textContent = "Click to start: " + payText;
+    setClass("row-" + i, "task-row ready");
+    setText("status-" + i, "Click to start: " + payText);
   }
 
   // during an outage the bar stays where it was when the outage started
   var now = Date.now();
   if (isOutage()) {
-    now = outageStartTime;
+    now = eventStartTime;
   }
   var percent = 0;
   if (task.running) {
     percent = (now - task.startTime) / 1000 / time * 100;
-    if (percent > 100) {
-      percent = 100;
-    }
   }
-  document.getElementById("bar-" + i).style.width = percent + "%";
+  setBarWidth("bar-" + i, percent);
 }
 
 // Shows the Level Up and Hire buttons with their costs (greyed out if too expensive)
 function showRowButtons(i) {
   var levelCost = getLevelCost(i);
-  var levelButton = document.getElementById("level-" + i);
-  levelButton.style.display = "block";
-  levelButton.textContent = "Level Up " + formatMoney(levelCost);
-  levelButton.disabled = gameState.money < levelCost;
+  setShown("level-" + i, true);
+  setText("level-" + i, "Level Up " + formatMoney(levelCost));
+  setDisabled("level-" + i, gameState.money < levelCost);
 
   var hireCost = taskList[i].hireCost;
-  var hireButton = document.getElementById("hire-" + i);
   if (gameState.tasks[i].hired) {
-    hireButton.style.display = "none";
+    setShown("hire-" + i, false);
   } else {
-    hireButton.style.display = "block";
-    hireButton.textContent = "Hire " + taskList[i].character + " " + formatMoney(hireCost);
-    hireButton.disabled = gameState.money < hireCost;
+    setShown("hire-" + i, true);
+    setText("hire-" + i, "Hire " + taskList[i].character + " " + formatMoney(hireCost));
+    setDisabled("hire-" + i, gameState.money < hireCost);
   }
 }
 
-// Shows a row that is unlocked
+// Shows a task row that is unlocked
 function showUnlockedRow(i) {
-  document.getElementById("name-" + i).textContent = taskList[i].name + "  Lv " + gameState.tasks[i].level;
-  document.getElementById("bar-outer-" + i).style.display = "block";
-  document.getElementById("unlock-" + i).style.display = "none";
+  setText("name-" + i, taskList[i].name + "  Lv " + gameState.tasks[i].level);
+  setShown("bar-outer-" + i, true);
+  setShown("unlock-" + i, false);
   showRowState(i);
   showRowButtons(i);
 }
 
-// Shows the event banner with the right text and button, or hides it
-function updateEventBanner() {
-  var banner = document.getElementById("event-banner");
-  var text = document.getElementById("event-text");
-  var button = document.getElementById("event-button");
-  var now = Date.now();
-  banner.style.display = "block";
-  button.style.display = "inline-block";
-  if (eventType == "meeting") {
-    banner.className = "meeting";
-    text.textContent = "Investor Meeting! Take it in " + Math.ceil((eventEndTime - now) / 1000) + "s to double all payouts for 30s.";
-    button.textContent = "Take Meeting";
-  } else if (eventType == "outage") {
-    banner.className = "outage";
-    text.textContent = "Server Outage! All tasks are paused for " + Math.ceil((eventEndTime - now) / 1000) + "s.";
-    button.textContent = "Fix It";
-  } else if (now < boostEndTime) {
-    banner.className = "meeting";
-    text.textContent = "Payouts x2! " + Math.ceil((boostEndTime - now) / 1000) + "s left.";
-    button.style.display = "none";
-  } else {
-    banner.style.display = "none";
+// The text under a team member's name that says what they do right now
+function getTeamStatus(t) {
+  if (t == 0) {
+    if (isOutage() && gameState.team[0].hired) {
+      return "Fixing the servers!";
+    }
+    return "Server outages last " + formatSeconds(getOutageSeconds()) + " (max 30s)";
   }
+  if (isBreachRunning() && gameState.team[1].hired) {
+    return "Fighting the hacker!";
+  }
+  var text = "Hacker breach timer: " + getBreachSeconds() + "s";
+  if (gameState.team[1].hired) {
+    text = text + ", win = x1.5 for 60s";
+  }
+  return text;
+}
+
+// Updates one Team row: name, level, status, buttons and sprite
+function updateTeamRow(t) {
+  var member = gameState.team[t];
+  var isWorking = (t == 0 && isOutage()) || (t == 1 && isBreachRunning());
+
+  if (!member.hired) {
+    setClass("team-row-" + t, "task-row locked");
+    setText("team-name-" + t, teamList[t].name + " (not hired)");
+    setShown("team-hire-" + t, true);
+    setText("team-hire-" + t, "Hire " + teamList[t].name + " " + formatMoney(teamList[t].hireCost));
+    setDisabled("team-hire-" + t, gameState.money < teamList[t].hireCost);
+    setShown("team-level-" + t, false);
+  } else {
+    if (isWorking) {
+      setClass("team-row-" + t, "task-row working");
+    } else {
+      setClass("team-row-" + t, "task-row auto");
+    }
+    setShown("team-hire-" + t, false);
+    setShown("team-level-" + t, true);
+    if (member.level >= teamList[t].maxLevel) {
+      setText("team-name-" + t, teamList[t].name + "  Lv " + member.level + " MAX");
+      setText("team-level-" + t, "MAX");
+      setDisabled("team-level-" + t, true);
+    } else {
+      setText("team-name-" + t, teamList[t].name + "  Lv " + member.level);
+      setText("team-level-" + t, "Level Up " + formatMoney(getTeamLevelCost(t)));
+      setDisabled("team-level-" + t, gameState.money < getTeamLevelCost(t));
+    }
+  }
+  setText("team-status-" + t, getTeamStatus(t));
+
+  var frameNumber = 1;
+  if (member.hired && isWorking) {
+    frameNumber = getTypingFrame();
+  }
+  showSprite("team-character-" + t, teamList[t].name, frameNumber);
+}
+
+// Shows the Team section once enough money has been earned
+function updateTeamSection() {
+  if (gameState.totalEarned < teamUnlockEarned) {
+    setShown("team-section", false);
+    return;
+  }
+  setShown("team-section", true);
+  for (var t = 0; t < teamList.length; t++) {
+    updateTeamRow(t);
+  }
+}
+
+// Shows the event banner for an Investor Meeting offer or a Server Outage, or hides it
+function updateEventBanner() {
+  var now = Date.now();
+  if (eventType == "") {
+    setShown("event-banner", false);
+    return;
+  }
+  setShown("event-banner", true);
+  var secondsLeft = (eventEndTime - now) / 1000;
+  var totalSeconds = (eventEndTime - eventStartTime) / 1000;
+  if (eventType == "meeting") {
+    setClass("event-banner", "meeting");
+    setText("event-text", "Investor Meeting! Take it to double all payouts for 30s.");
+    setShown("event-button", true);
+  } else {
+    setClass("event-banner", "outage");
+    setText("event-text", "Server Outage! All tasks are paused.");
+    setShown("event-button", false);
+  }
+  setText("event-time-text", "Time left: " + Math.ceil(secondsLeft) + " s");
+  setBarWidth("event-timer", secondsLeft / totalSeconds * 100);
+}
+
+// Shows or hides one boost bar (x2 meeting or x1.5 security) with its countdown
+function updateBoost(name, endTime, totalSeconds) {
+  var secondsLeft = (endTime - Date.now()) / 1000;
+  if (secondsLeft <= 0) {
+    setShown(name + "-boost", false);
+    return;
+  }
+  setShown(name + "-boost", true);
+  setText(name + "-time-text", "Time left: " + Math.ceil(secondsLeft) + " s");
+  setBarWidth(name + "-timer", secondsLeft / totalSeconds * 100);
+}
+
+// Updates the breach popup: problems left, the countdown bar and the hacker sprite
+function updateBreachPopup() {
+  if (!isBreachRunning()) {
+    return;
+  }
+  var secondsLeft = (breachEndTime - Date.now()) / 1000;
+  setText("breach-left", "Problems left: " + problemsLeft);
+  setText("breach-time-text", "Time left: " + Math.max(0, Math.ceil(secondsLeft)) + " s");
+  setBarWidth("breach-timer", secondsLeft / breachTotalSeconds * 100);
+  if (secondsLeft < 10) {
+    setClass("breach-timer", "timer-inner danger");
+  } else {
+    setClass("breach-timer", "timer-inner");
+  }
+  showSprite("hacker-canvas", "Hacker", getTypingFrame());
 }
 
 // Shows the Pivot button (with how many points it gives) once the player has earned enough
 function updatePivotButton() {
-  var pivotButton = document.getElementById("pivot-button");
   var points = getPivotPoints();
+  setShown("pivot-button", points >= 1);
   if (points >= 1) {
-    pivotButton.style.display = "inline-block";
-    pivotButton.textContent = "Pivot: +" + points + " investors";
-  } else {
-    pivotButton.style.display = "none";
+    setText("pivot-button", "Pivot: +" + points + " investors");
   }
 }
 
-// Redraws the top bar, the event banner and every task row
+// Redraws everything that can change: top bar, events, task rows and the team
 function updateScreen() {
-  document.getElementById("money-display").textContent = formatMoney(gameState.money);
-  document.getElementById("investor-display").textContent = "Investors: " + gameState.investors + " (+" + gameState.investors * 10 + "%)";
+  setText("money-display", formatMoney(gameState.money));
+  setText("investor-display", "Investors: " + gameState.investors + " (+" + gameState.investors * 10 + "%)");
   updatePivotButton();
   updateEventBanner();
+  updateBoost("meeting", meetingBoostEndTime, meetingBoostSeconds);
+  updateBoost("security", securityBoostEndTime, securityBoostSeconds);
+  updateBreachPopup();
   if (gameState.soundOn) {
-    document.getElementById("sound-button").textContent = "Sound: On";
+    setText("sound-button", "Sound: On");
   } else {
-    document.getElementById("sound-button").textContent = "Sound: Off";
+    setText("sound-button", "Sound: Off");
   }
   for (var i = 0; i < taskList.length; i++) {
     if (gameState.tasks[i].unlocked) {
@@ -729,6 +1141,7 @@ function updateScreen() {
     }
     updateSprite(i);
   }
+  updateTeamSection();
 }
 
 // ---------- Starting the game ----------
@@ -762,10 +1175,15 @@ function startGame() {
   }
   loadGame();
   buildTaskRows();
+  buildTeamRows();
   setInterval(gameTick, 100);
   setInterval(saveGame, 10000);
   window.onbeforeunload = saveGame;
   console.log("DEBUG startGame: game loaded and the 100 ms tick timer is running");
+  // a breach was going on when the page was closed or refreshed, so it counts as a loss
+  if (gameState.breachActive) {
+    loseBreach();
+  }
   updateScreen();
 }
 
