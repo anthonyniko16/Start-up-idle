@@ -3,79 +3,43 @@ CS 401 class project
 
 HOW TO RUN
   Double-click index.html (or drag it into Chrome, Firefox or Edge).
-  Nothing needs to be installed. There is no build step and no server.
-  An internet connection is only used to load the pixel font from Google
-  Fonts. Without it the game still works and uses a plain fallback font.
+  Nothing needs to be installed. There is no build step, no server and no
+  internet connection needed.
 
 HOW TO PLAY
-  Click a task (the left part of its row) to start it. The countdown next to
-  its bar shows the time left. When the bar fills up you get paid. Use the money to unlock new tasks and level them up.
-  Leveling up makes a task pay more. Every 5 levels a task gets 4% faster,
-  and at levels 10, 25, 50 and 100 it gets twice as fast (never faster than
-  1 second).
-  Hire a character for a task and they will run it for you, even while the
-  game is closed (up to 8 hours of offline earnings, 12 with the Snack Bar).
-  Stats and Achievements are at the bottom of the page. Every achievement
-  gives a permanent payout bonus (up to +40% in total) that you keep even
-  after a pivot or losing to a hacker.
-  Office Upgrades (after $1,000 earned) are one-time purchases that make
-  payouts bigger, tasks faster, outages shorter and so on. You lose them
-  when you pivot or lose to a hacker.
-  Once you have earned $1,000,000 since your last pivot, you can Pivot: you
-  start over, but get investor points that give +10% payouts each.
-  Every 1 to 2 minutes a random event happens:
-    - Investor Meeting: click it within 15 seconds for double payouts for
-      30 seconds.
-    - Server Outage (after $5,000 earned): all tasks pause for up to 30
-      seconds. Hire and level IT Support to make outages shorter.
-    - Hacker Breach (after $100,000 earned, rarer): answer 3 math problems
-      before the timer runs out. Cybersecurity gives more time and a x5
-      payout boost for 60 seconds when you win. If you lose, you start over
-      (you keep investors, achievements and stats, but lose upgrades). Refreshing the page
-      during a breach counts as losing.
-  The Team section (IT Support and Cybersecurity) appears after $10,000
-  earned. Both can be leveled up to 15.
-  The Sound button at the bottom turns the beeps on and off.
+  Click a task (the left part of its row) to start it. The bar fills up and
+  the time left counts down next to the payout. When it reaches 0 you get
+  paid. Use the money to unlock new tasks and level them up.
+  Leveling up makes a task pay more (payout = base payout x level). Every
+  5 levels a task gets 4% faster, and at levels 10, 25, 50 and 100 it gets
+  twice as fast (never faster than 1 second).
+  Hire a task's character and the task runs by itself (the row says Auto),
+  even while the game is closed (up to 8 hours of offline earnings).
+  The Stats button shows total earned, tasks completed, characters hired
+  and the highest level.
 
 FILES
-  index.html   The page. Loads the font, style.css and the scripts in this
-               order: tasks.js, sprites.js, save.js, game.js.
-  style.css    Colors, layout and the pixel look.
-  tasks.js     The list of tasks and all their numbers (time, payout,
-               unlock cost, level cost base, hire cost). Change numbers here
-               to tune the game. Also the speed-up rules, the team (IT
-               Support and Cybersecurity), when events unlock, the Security
-               Boost multiplier and the Office Upgrades (perkList).
-  sprites.js   The pixel art. Each character is a 16x16 grid of letters,
-               each letter is a color. Also the function that draws a
-               sprite onto a canvas.
-  save.js      gameState (everything that changes while playing), making a
-               new game, saving and loading with localStorage, offline
-               progress, and Reset.
-  game.js      The game itself: formulas (all in one "Formulas" section),
-               office upgrades, achievements and their rewards, clicking tasks, buying and hiring,
-               the team, pivoting, the game loop that pays the player, random
-               events and the hacker breach, sound, achievements, the stats
-               and achievements popups, and drawing the screen.
+  index.html   The page: top bar, the place for the task rows, the Stats and
+               Save buttons, and the popup. Loads style.css and game.js.
+  style.css    Colors and layout.
+  game.js      Everything else: the task list (names, times, payouts,
+               costs), the character sprite, the formulas, clicking and
+               buying, the game loop, saving/loading with offline progress,
+               and updating the screen.
   readme.txt   This file.
   dev-notes.md A log of problems and design changes while building the game.
-  test-checklist.md  Step-by-step manual tests for each layer.
+  test-checklist.md  Step-by-step manual tests.
 
 SAVING
   The game saves by itself every 10 seconds and when the page is closed.
   The Save button saves right away. The save is kept in the browser's
-  localStorage under the name "startUpSave", so it only exists in the
-  browser you played in.
+  localStorage under the name "startUpSave".
 
-RESETTING THE SAVE
-  Click Reset at the bottom of the page and press OK. This deletes the save
-  and starts a new game. (Clearing the browser's site data also deletes it.)
+STARTING OVER
+  There is no Reset button. To start a new game, clear the site data in the
+  browser, or open the console (F12) and type: localStorage.clear()
+  then close the page without saving (or reload twice).
 
 BEFORE TURNING IN
-  Delete the blocks marked "TESTING ONLY":
-    - index.html: the testing buttons ("Add $10,000", "Add $1,000,000",
-      "Start random event now", "Start outage", "End outage",
-      "Start breach", "End breach", "Fail breach").
-    - game.js: testEndOutage, testEndBreach and testFailBreach.
-    - style.css: the #test-area styles.
-  Also remove the console.log lines that start with "DEBUG" in game.js.
+  Delete the block in index.html marked "TESTING ONLY" (the
+  "Add $10,000 (testing)" button).

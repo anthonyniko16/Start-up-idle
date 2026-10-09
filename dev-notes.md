@@ -94,3 +94,11 @@ A short log of problems, changes, and surprises while building Start Up.
 - Hacker Beaten needed something to check, so `gameState.breachesWon` counts wins (it is a stat, kept after pivots and losses, and shown on the Stats page).
 - Achievements are also checked right after loading, so an old save immediately gets the new ones it already qualifies for (for example Level 10 or First Hire). The old achievement ids didn't change, so old saves keep them.
 - Renamed the "Earn $1,000,000 (testing)" button to "Add $1,000,000 (testing)" instead of adding a duplicate, since it already counted the money in totalEarned.
+
+## Making the game smaller
+
+- The project had grown much bigger than the original plan, and I need to be able to explain every line, so I cut it back down. Removed: IT Support and Cybersecurity (the Team section), Server Outage, Hacker Breach (popup, math problems and countdowns), Investor Meeting, Security Boost, the random event timer, Office Upgrades, achievements (list, pop-ups, rewards and page), Pivot and investor points, sound and the mute button, the Reset button, all testing buttons except "Add $10,000", the Founder sprite, the typing animation and second frames, the Google Font, and the code that repaired old or broken saves.
+- The code is now three files: index.html, style.css and game.js. The task list and the sprite moved to the top of game.js, and tasks.js, sprites.js and save.js were deleted. The payout is now just base payout x level.
+- Each character is the same 16x16 sprite with its own hair and shirt colors, drawn once when the row is built. Hiring no longer changes the picture; the button just says "Hired".
+- Combined Unlock, Level Up and Hire into one `buy(i, what)` function, and all row updates into one `updateRow(i)`. The rows are still built once, and `setText()` still only changes text that is different, so the lost-click problem doesn't come back.
+- I kept the save field name `tasksCompleted` so the save from the bigger version still loads without any repair code (extra old fields are just ignored).
