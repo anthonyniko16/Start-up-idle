@@ -2,7 +2,7 @@
 
 Open index.html in a browser (double-click it). Follow the steps in order and check that what happens matches. If a step fails, write down the step number and what happened instead.
 
-**Starting with a fresh game:** there is no Reset button. Press F12, open the Console, type `window.onbeforeunload = null; localStorage.clear(); location.reload();` and press Enter.
+**Starting with a fresh game:** click Reset at the bottom and press OK.
 
 ## Basics
 
@@ -48,6 +48,12 @@ Open index.html in a browser (double-click it). Follow the steps in order and ch
 25. Start a task by hand, close the tab, wait longer than its time, open the game again. It paid once and is waiting for a click.
 26. 8 hour limit: press F12 and run `state.lastSaved = Date.now() - 20 * 3600 * 1000; window.onbeforeunload = null; localStorage.setItem("startUpSave", JSON.stringify(state)); location.reload();` The popup says you were away 480 minutes: only 8 hours count.
 
+## Reset
+
+27. Click Reset and press Cancel. Nothing changes.
+28. Click Reset and press OK. Money is $0, only Fix a Bug is unlocked at level 1, nobody is hired, and Stats shows all zeros.
+29. Reload the page. It is still the fresh game.
+
 ## Layout
 
-27. Make the window narrow. The buttons move under the task and nothing is cut off sideways.
+30. Make the window narrow. The buttons move under the task and nothing is cut off sideways.

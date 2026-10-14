@@ -172,6 +172,14 @@ function load() {
   }
 }
 
+function reset() {
+  if (confirm("Delete your save and start over?")) {
+    state = newGame();
+    save();
+    update();
+  }
+}
+
 function showPopup(text) {
   document.getElementById("popupText").textContent = text;
   document.getElementById("popup").style.display = "block";

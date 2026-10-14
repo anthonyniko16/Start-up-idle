@@ -102,3 +102,4 @@ A short log of problems, changes, and surprises while building Start Up.
 - Each character is the same 16x16 sprite with its own hair and shirt colors, drawn once when the row is built. Hiring no longer changes the picture; the button just says "Hired".
 - Combined Unlock, Level Up and Hire into one `buy(i, what)` function, and all row updates into one `updateRow(i)`. The rows are still built once, and `setText()` still only changes text that is different, so the lost-click problem doesn't come back.
 - I kept the save field name `tasksCompleted` so the save from the bigger version still loads without any repair code (extra old fields are just ignored).
+- Added the Reset button back after removing it: without it, starting over meant typing code into the browser console, which is too hard for friends testing the game. It asks for confirmation, then replaces the game with `newGame()` and saves right away.

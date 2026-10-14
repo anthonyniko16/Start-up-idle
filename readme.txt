@@ -19,8 +19,8 @@ HOW TO PLAY
   and the highest level.
 
 FILES
-  index.html   The page: top bar, the place for the task rows, the Stats and
-               Save buttons, and the popup. Loads style.css and game.js.
+  index.html   The page: top bar, the place for the task rows, the Stats, Save
+               and Reset buttons, and the popup. Loads style.css and game.js.
   style.css    Colors and layout.
   game.js      Everything else: the task list (names, times, payouts,
                costs), the character sprite, the formulas, clicking and
@@ -36,9 +36,8 @@ SAVING
   localStorage under the name "startUpSave".
 
 STARTING OVER
-  There is no Reset button. To start a new game, clear the site data in the
-  browser, or open the console (F12) and type: localStorage.clear()
-  then close the page without saving (or reload twice).
+  Click Reset at the bottom of the page and press OK. This deletes the save
+  and starts a new game.
 
 BEFORE TURNING IN
   Delete the block in index.html marked "TESTING ONLY" (the
